@@ -128,7 +128,7 @@ paths:
   /v1/dashboard:
     get:
       security: [{cookieAuth: []}]
-      responses: {'200': {description: Organisation-scoped overview}}
+      responses: {'200': {description: Role-scoped health and ticket status, priority and first-response metrics}}
   /v1/websites:
     get:
       security: [{cookieAuth: []}]
