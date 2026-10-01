@@ -14,7 +14,7 @@ The scheduler checks active records and sends unique jobs to Laravel's database 
 
 ## Service targets
 
-Ticket targets use elapsed hours by priority. This first version does not implement business calendars, pause rules, or contractual SLA claims.
+Ticket targets use elapsed hours by priority. Resolution deadlines pause while waiting for the client. This first version does not implement business calendars or contractual SLA claims.
 
 ## Implemented workflows and remaining work
 

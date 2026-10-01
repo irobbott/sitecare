@@ -15,7 +15,7 @@ SiteCare is a website maintenance workspace for agencies and the organisations t
 - Clients can view client-visible maintenance entries, backup summaries and incidents; staff can acknowledge incidents.
 - Organisation-scoped website and ticket queries, role checks, internal comment filtering, ticket status transitions and audit entries for implemented changes.
 - Ticket categories are seeded with common maintenance request types. Administrators can add, disable and re-enable categories; old tickets keep their original category label.
-- Administrators can configure elapsed-hour ticket response targets by priority. Targets apply to new tickets and tickets whose priority changes; they are internal targets, not guarantees.
+- Administrators can configure elapsed-hour first-response and resolution targets by priority. Targets apply to new tickets and tickets whose priority changes; resolution time pauses while a ticket waits for the client. They are internal targets, not guarantees.
 - Reports include role-scoped ticket status and priority counts, first-response timeliness and 30-day uptime metrics.
 - A queued monitor command checks approved sites on configured intervals, records uptime and SSL certificate history, and opens or recovers incidents after consecutive failures.
 - SSL checks pin the resolved public IP, request TLS metadata using the site's hostname for SNI, validate the certificate chain and hostname, and deduplicate expiry alerts at 30, 14, 7, 3 and 1 day thresholds.
@@ -24,7 +24,7 @@ SiteCare is a website maintenance workspace for agencies and the organisations t
 - Responsive dashboard UI with demo preview data.
 - Working website submission and health details, ticket assignment/comments/attachments, maintenance, backup, incident, organisation/team, profile, notification, password-reset and report screens that consume the REST API.
 
-Some larger product areas still need more depth: richer analytics, complete audit coverage, business-hour response-target calculations, pausing targets while waiting on a client, notification coverage for every event, and broader automated workflow coverage. Backup entries are operator-reported; a signed event does not prove a backup can be restored. Do not use this version as a production service.
+Some larger product areas still need more depth: richer analytics, complete audit coverage, business-hour response-target calculations, notification coverage for every event, and broader automated workflow coverage. Backup entries are operator-reported; a signed event does not prove a backup can be restored. Do not use this version as a production service.
 
 ## Roles and tenant boundaries
 
@@ -132,4 +132,4 @@ The app has no public registration endpoint. It uses Sanctum session cookies and
 
 Before production, add network-level egress filtering for monitor traffic, review the authorization policies and isolation tests, configure secret storage, TLS and ingress controls, and define health-history retention and deployment monitoring. The application does not guarantee uptime or run a customer's backups.
 
-See [docs/decisions.md](docs/decisions.md) for implementation choices. Monitoring uses Laravel's database queue so local setup does not require Redis. Response targets are configurable elapsed-hour estimates; they do not use business calendars or pause while a ticket waits on a client. Analytics and audit coverage can be expanded further.
+See [docs/decisions.md](docs/decisions.md) for implementation choices. Monitoring uses Laravel's database queue so local setup does not require Redis. Response and resolution targets are configurable elapsed-hour estimates; resolution targets pause while a ticket waits on a client. The targets do not use business calendars. Analytics and audit coverage can be expanded further.
