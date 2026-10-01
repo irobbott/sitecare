@@ -15,6 +15,7 @@ SiteCare is a website maintenance workspace for a small agency and its clients. 
 - A queued monitor command with a configurable minimum interval and basic incident open/recovery handling.
 - Local MySQL, queue worker, scheduler and Mailpit services in Compose.
 - Responsive dashboard UI with demo preview data.
+- Working website submission/review, ticket/comment, maintenance, backup, incident, team invitation and report screens that consume the REST API.
 
 The brief describes a much wider product than this first implementation. Password reset, richer admin screens, file attachments, SSL inspection, notification preferences, complete audit coverage, analytics, detailed health tabs and comprehensive automated coverage still need implementation. Backup entries are operator-reported; a signed event does not prove a backup can be restored. Do not use this version as a production service.
 
