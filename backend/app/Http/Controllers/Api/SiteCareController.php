@@ -11,7 +11,6 @@ use App\Services\SafeWebsiteUrl;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Password as PasswordBroker;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Mail;
@@ -61,7 +60,10 @@ class SiteCareController extends Controller
             'password'=>['sometimes','required','confirmed',Password::min(12)],
         ]);
         if(isset($data['password'])){
-            Auth::logoutOtherDevices($data['current_password']);
+            $sessions = DB::table('sessions')->where('user_id', $user->id);
+            if ($request->hasSession()) $sessions->where('id', '!=', $request->session()->getId());
+            $sessions->delete();
+            $user->forceFill(['remember_token' => Str::random(60)])->save();
             unset($data['current_password']);
         } else unset($data['current_password']);
         $user->update($data);
@@ -372,7 +374,7 @@ class SiteCareController extends Controller
         abort_unless($request->user()->role==='client'&&$request->user()->organisation?->status==='active',403); $data=$request->validate(['website_id'=>'required|integer','subject'=>'required|string|max:180','description'=>'required|string|max:10000','category'=>'required|string|exists:ticket_categories,name','priority'=>'required|in:low,normal,high,urgent']);
         abort_unless(TicketCategory::where('name', $data['category'])->where('is_active', true)->exists(), 422, 'Choose an active ticket category.');
         $website=Website::where('organisation_id',$request->user()->organisation_id)->where('status','active')->findOrFail($data['website_id']);
-        $ticket=DB::transaction(function()use($data,$website,$request){$number='SC-'.now()->format('Y').'-'.str_pad((string)(Ticket::whereYear('created_at',now()->year)->lockForUpdate()->count()+1),5,'0','STR_PAD_LEFT');$targets=PlatformSetting::firstOrCreate(['key'=>'ticket_response_targets'],['value'=>['low'=>72,'normal'=>24,'high'=>4,'urgent'=>1]])->value;$hours=$targets[$data['priority']]??24;$ticket=Ticket::create($data+['number'=>$number,'website_id'=>$website->id,'organisation_id'=>$website->organisation_id,'reporter_id'=>$request->user()->id,'status'=>'open','response_due_at'=>now()->addHours($hours)]);$ticket->events()->create(['actor_id'=>$request->user()->id,'event_type'=>'created','after_data'=>['status'=>'open','priority'=>$ticket->priority]]);return $ticket;});
+        $ticket=DB::transaction(function()use($data,$website,$request){$number='SC-'.now()->format('Y').'-'.str_pad((string)(Ticket::whereYear('created_at',now()->year)->lockForUpdate()->count()+1),5,'0',STR_PAD_LEFT);$targets=PlatformSetting::firstOrCreate(['key'=>'ticket_response_targets'],['value'=>['low'=>72,'normal'=>24,'high'=>4,'urgent'=>1]])->value;$hours=$targets[$data['priority']]??24;$ticket=Ticket::create($data+['number'=>$number,'website_id'=>$website->id,'organisation_id'=>$website->organisation_id,'reporter_id'=>$request->user()->id,'status'=>'open','response_due_at'=>now()->addHours($hours)]);$ticket->events()->create(['actor_id'=>$request->user()->id,'event_type'=>'created','after_data'=>['status'=>'open','priority'=>$ticket->priority]]);return $ticket;});
         $this->audit($request,'ticket.created',$ticket);
         \App\Models\User::where('role','admin')->get()->each(fn($admin)=>$this->notify($admin,'New support ticket',$ticket->number.' · '.$ticket->subject,'/'));
         return response()->json(['data'=>$ticket],201);

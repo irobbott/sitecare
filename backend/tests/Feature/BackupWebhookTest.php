@@ -18,7 +18,7 @@ class BackupWebhookTest extends TestCase
         $timestamp=(string)now()->timestamp;$event='backup-2026-001';
         $body=json_encode(['type'=>'full_site','status'=>'completed','completed_at'=>now()->toIso8601String(),'verified'=>false],JSON_THROW_ON_ERROR);
         $signature=hash_hmac('sha256',$timestamp."\n".$event."\n".$body,'correct horse battery staple');
-        $headers=['X-SiteCare-Timestamp'=>$timestamp,'X-SiteCare-Event-Id'=>$event,'X-SiteCare-Signature'=>$signature,'Accept'=>'application/json','Content-Type'=>'application/json'];
+        $headers=['HTTP_X_SITECARE_TIMESTAMP'=>$timestamp,'HTTP_X_SITECARE_EVENT_ID'=>$event,'HTTP_X_SITECARE_SIGNATURE'=>$signature,'HTTP_ACCEPT'=>'application/json','CONTENT_TYPE'=>'application/json'];
         $path="/api/v1/webhooks/websites/{$website->id}/backups";
 
         $this->call('POST',$path,[],[],[],$headers,$body)->assertCreated();
