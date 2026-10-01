@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\{AuditLog,BackupRecord,Incident,Invitation,MaintenanceRecord,PlatformSetting,Ticket,TicketAttachment,TicketCategory,Website,UptimeCheck};
+use App\Models\{AuditLog,BackupRecord,Incident,Invitation,MaintenanceRecord,Organisation,PlatformSetting,SslCheck,Ticket,TicketAttachment,TicketCategory,Website,UptimeCheck};
 use App\Jobs\CheckWebsite;
 use App\Mail\InvitationMail;
 use App\Notifications\SiteCareAlert;
@@ -228,9 +228,24 @@ class SiteCareController extends Controller
         $responsesMeasured=(clone $measuredResponses)->count();
         $responsesOnTime=(clone $measuredResponses)->whereNotNull('first_response_at')->whereColumn('first_response_at','<=','response_due_at')->count();
         $responsesOverdue=(clone $tickets)->whereNull('first_response_at')->where('response_due_at','<',now())->count();
+        $pendingWebsites=(clone $websites)->where('status','pending')->count();
+        $urgentTickets=(clone $tickets)->whereNotIn('status',['resolved','closed'])->where('priority','urgent')->count();
+        $activeIncidents=Incident::whereNull('recovered_at')->whereIn('website_id',(clone $websites)->select('id'))->count();
+        $latestSslIds=SslCheck::query()->selectRaw('MAX(id)')->whereIn('website_id',(clone $websites)->select('id'))->groupBy('website_id');
+        $sslExpiringSoon=SslCheck::whereIn('id',$latestSslIds)->whereBetween('expires_at',[now(),now()->addDays(30)])->count();
+        $backupWebsites=(clone $websites)->where('status','active')->whereNotNull('backup_frequency_hours')->with('latestBackupRecord')->get(['id','backup_frequency_hours']);
+        $overdueBackups=$backupWebsites->filter(function($website){$backup=$website->latestBackupRecord;return $backup&&in_array($backup->status,['completed','verified'],true)&&$backup->completed_at->lt(now()->subHours($website->backup_frequency_hours));})->count();
+        $dashboardMetrics=[
+            'active_organisations'=>$request->user()->role==='admin'?Organisation::where('status','active')->count():null,
+            'pending_websites'=>$pendingWebsites,'urgent_tickets'=>$urgentTickets,'overdue_response_tickets'=>$responsesOverdue,
+            'active_incidents'=>$activeIncidents,'ssl_expiring_soon'=>$sslExpiringSoon,'overdue_backups'=>$overdueBackups,
+            'assigned_open_tickets'=>$request->user()->role==='technician'?(clone $tickets)->whereNotIn('status',['resolved','closed'])->count():null,
+            'waiting_for_client_tickets'=>(clone $tickets)->where('status','waiting_for_client')->count(),
+        ];
         return ['data'=>['websites'=>$websites->count(),'healthy'=>(clone $websites)->where('is_up',true)->count(),'open_tickets'=>(clone $tickets)->whereNotIn('status',['resolved','closed'])->count(),
             'checks_total'=>$checksTotal,'uptime_percent'=>$checksTotal?round($checksAvailable*100/$checksTotal,2):null,'average_response_ms'=>(clone $checks)->avg('response_ms'),'daily_uptime'=>$daily->map(fn($day)=>['date'=>$day->day,'checks'=>(int)$day->checks,'uptime_percent'=>$day->checks?round((int)$day->available*100/(int)$day->checks,2):null])->values(),
             'ticket_status_counts'=>$ticketStatuses,'ticket_priority_counts'=>$ticketPriorities,'response_target_metrics'=>['measured'=>$responsesMeasured,'on_time'=>$responsesOnTime,'overdue'=>$responsesOverdue,'on_time_percent'=>$responsesMeasured?round($responsesOnTime*100/$responsesMeasured,1):null],
+            'dashboard_metrics'=>$dashboardMetrics,
             'recent_activity'=>$activity->map(fn($event)=>['id'=>$event->id,'action'=>$event->action,'subject_type'=>$event->subject_type,'subject_id'=>$event->subject_id,'created_at'=>$event->created_at,'actor'=>$event->actor?->only('id','name')])->values(),
             'recent_tickets'=>(clone $tickets)->with('website:id,name')->latest()->limit(6)->get(),'recent_websites'=>(clone $websites)->latest()->limit(5)->get(['id','name','url','status','is_up','response_ms','last_checked_at'])]];
     }

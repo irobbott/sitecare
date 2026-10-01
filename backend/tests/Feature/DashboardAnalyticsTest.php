@@ -31,7 +31,15 @@ class DashboardAnalyticsTest extends TestCase
             ->assertJsonPath('data.response_target_metrics.measured', 1)
             ->assertJsonPath('data.response_target_metrics.overdue', 1)
             ->assertJsonPath('data.response_target_metrics.on_time_percent', 0)
+            ->assertJsonPath('data.dashboard_metrics.urgent_tickets', 1)
+            ->assertJsonPath('data.dashboard_metrics.overdue_response_tickets', 1)
+            ->assertJsonPath('data.dashboard_metrics.active_organisations', null)
             ->assertDontSee('Private ticket');
+
+        $admin = User::create(['name' => 'Admin', 'email' => 'admin@example.test', 'password' => 'password', 'role' => 'admin']);
+        $this->actingAs($admin)->getJson('/api/v1/dashboard')->assertOk()
+            ->assertJsonPath('data.dashboard_metrics.active_organisations', 2)
+            ->assertJsonPath('data.dashboard_metrics.pending_websites', 0);
         Carbon::setTestNow();
     }
 }
