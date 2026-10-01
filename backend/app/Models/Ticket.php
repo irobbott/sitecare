@@ -16,4 +16,5 @@ class Ticket extends Model
     public function assignee(): BelongsTo { return $this->belongsTo(User::class,'assignee_id'); }
     public function comments(): HasMany { return $this->hasMany(TicketComment::class); }
     public function events(): HasMany { return $this->hasMany(TicketEvent::class); }
+    public function attachments(): HasMany { return $this->hasMany(TicketAttachment::class); }
 }

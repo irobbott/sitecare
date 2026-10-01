@@ -9,6 +9,10 @@ Route::prefix('v1')->group(function () {
     Route::post('/invitations/accept',[SiteCareController::class,'acceptInvitation'])->middleware('throttle:10,1');
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('/auth/me',[SiteCareController::class,'me']);
+        Route::patch('/auth/profile',[SiteCareController::class,'updateProfile']);
+        Route::get('/notifications',[SiteCareController::class,'notifications']);
+        Route::patch('/notifications/{notification}',[SiteCareController::class,'readNotification']);
+        Route::patch('/notification-preferences',[SiteCareController::class,'updateNotificationPreferences']);
         Route::post('/auth/logout',[SiteCareController::class,'logout']);
         Route::get('/invitations',[SiteCareController::class,'invitations']);
         Route::post('/invitations',[SiteCareController::class,'storeInvitation'])->middleware('throttle:10,1');
@@ -28,6 +32,9 @@ Route::prefix('v1')->group(function () {
         Route::get('/tickets/{ticket}/comments',[SiteCareController::class,'comments']);
         Route::post('/tickets/{ticket}/comments',[SiteCareController::class,'storeComment']);
         Route::get('/tickets/{ticket}/history',[SiteCareController::class,'ticketHistory']);
+        Route::get('/tickets/{ticket}/attachments',[SiteCareController::class,'attachments']);
+        Route::post('/tickets/{ticket}/attachments',[SiteCareController::class,'storeAttachment'])->middleware('throttle:20,1');
+        Route::get('/attachments/{attachment}',[SiteCareController::class,'downloadAttachment']);
         Route::get('/incidents',[SiteCareController::class,'incidents']);
         Route::patch('/incidents/{incident}',[SiteCareController::class,'acknowledgeIncident']);
     });
