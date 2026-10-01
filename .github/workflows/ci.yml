@@ -1,0 +1,67 @@
+name: SiteCare checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Laravel tests (PHP 8.3)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, pdo_sqlite, sqlite3, curl, openssl, zip
+          coverage: none
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist
+      - name: Run Laravel feature and unit tests
+        env:
+          APP_ENV: testing
+          APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+          DB_CONNECTION: sqlite
+          DB_DATABASE: ':memory:'
+          CACHE_STORE: array
+          QUEUE_CONNECTION: sync
+          SESSION_DRIVER: array
+          MAIL_MAILER: array
+        run: php artisan test
+
+  frontend:
+    name: React checks and browser flows
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install frontend dependencies
+        run: npm ci
+      - name: Check lint and types
+        run: |
+          npm run lint
+          npm run typecheck
+      - name: Run component tests
+        run: npm test -- --pool=threads --maxWorkers=1 --minWorkers=1
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Build and run browser flows
+        run: npm run test:e2e -- --workers=1

@@ -121,7 +121,9 @@ npm run lint
 npm run test:e2e
 ```
 
-The backend includes focused SSRF and tenant-isolation tests. The frontend has a dashboard preview, sign-in dialog, invitation acceptance form, one unit test and a Playwright smoke flow. Broader workflow coverage still needs to be added. OpenAPI and the Postman collection cover only implemented routes.
+The backend includes focused tests for SSRF, tenant isolation, website review, password recovery, account settings, ticket categories, attachments, notifications, backups and SSL. Frontend unit coverage is small; Playwright checks the dashboard, workspace navigation and password-reset screen. The browser suite builds and serves the production bundle. OpenAPI and the Postman collection cover only implemented routes.
+
+GitHub Actions runs backend tests on PHP 8.3 and frontend lint, type, unit and browser checks on pushes and pull requests to `main`. This is useful when a local PHP installation is older than Laravel's supported version.
 
 ## Security and production notes
 
