@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Artisan;
 use App\Models\Website;
 use App\Jobs\CheckWebsite;
 use Illuminate\Support\Facades\Schedule;
+use App\Console\Commands\NotifyTicketTargets;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -17,3 +18,4 @@ Artisan::command('sitecare:monitor-due', function () {
 })->purpose('Queue due health checks for approved websites');
 
 Schedule::command('sitecare:monitor-due')->everyMinute()->withoutOverlapping();
+Schedule::command('sitecare:notify-ticket-targets')->everyMinute()->withoutOverlapping();

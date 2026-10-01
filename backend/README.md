@@ -18,7 +18,7 @@ For API calls from the frontend, first request `GET /sanctum/csrf-cookie`, then 
 
 ## Background work
 
-Run `php artisan queue:work` and `php artisan schedule:work` in separate terminals. `php artisan sitecare:monitor-due` queues health checks for active websites. Checks require public HTTP/HTTPS targets on ports 80 or 443.
+Run `php artisan queue:work` and `php artisan schedule:work` in separate terminals. `php artisan sitecare:monitor-due` queues health checks for active websites. `php artisan sitecare:notify-ticket-targets` queues target alerts for tickets due within an hour or already overdue. Checks require public HTTP/HTTPS targets on ports 80 or 443.
 
 ## Current API coverage
 

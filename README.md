@@ -19,7 +19,7 @@ SiteCare is a website maintenance workspace for agencies and the organisations t
 - Reports include role-scoped ticket status and priority counts, first-response timeliness and 30-day uptime metrics.
 - A queued monitor command checks approved sites on configured intervals, records uptime and SSL certificate history, and opens or recovers incidents after consecutive failures.
 - SSL checks pin the resolved public IP, request TLS metadata using the site's hostname for SNI, validate the certificate chain and hostname, and deduplicate expiry alerts at 30, 14, 7, 3 and 1 day thresholds.
-- Ticket assignment, client replies, website reviews, incidents, SSL expiry and password recovery can create in-app and queued email notifications. Internal staff notes never notify clients.
+- Ticket assignment, client replies, response and resolution target alerts, website reviews, incidents, SSL expiry and password recovery can create in-app and queued email notifications. Internal staff notes never notify clients.
 - Local MySQL, queue worker, scheduler and Mailpit services in Compose.
 - Responsive dashboard UI with demo preview data.
 - Working website submission and health details, ticket assignment/comments/attachments, maintenance, backup, incident, organisation/team, profile, notification, password-reset and report screens that consume the REST API.
@@ -36,7 +36,7 @@ Tickets begin open. Normal transitions are checked in the update endpoint across
 
 ## Monitoring behaviour and limits
 
-Run `php artisan sitecare:monitor-due` to queue checks for active websites in active organisations. Checks use a 4-second connection timeout, a 12-second request timeout, TLS verification, a fixed user agent and no redirect following. 2xx and 3xx responses count as available. Two consecutive recent failures open one incident; a successful check recovers it. HTTPS checks record certificate subject, issuer, validity dates, chain validation and hostname matching. The scheduler invokes the command every minute and unique jobs reduce duplicate dispatches.
+Run `php artisan sitecare:monitor-due` to queue checks for active websites in active organisations. Checks use a 4-second connection timeout, a 12-second request timeout, TLS verification, a fixed user agent and no redirect following. 2xx and 3xx responses count as available. Two consecutive recent failures open one incident; a successful check recovers it. HTTPS checks record certificate subject, issuer, validity dates, chain validation and hostname matching. The scheduler invokes monitoring and ticket-target alerts every minute; unique jobs reduce duplicate monitor dispatches.
 
 `SafeWebsiteUrl` permits HTTP/HTTPS on ports 80/443, rejects credentials and non-public IP ranges, checks A and AAAA results, and pins the selected address in cURL. SSL inspection uses that same validated public address and sends the original hostname as SNI. Redirects are not followed. This still needs a production egress proxy that blocks private, link-local, metadata and reserved ranges at the network layer.
 
@@ -86,7 +86,7 @@ npm ci
 npm run dev
 ```
 
-Set `VITE_API_URL` in `frontend/.env` if the API is not at `http://localhost:8000`. Without local SMTP, use `MAIL_MAILER=log`. Start a worker and scheduler separately with `php artisan queue:work` and `php artisan schedule:work`.
+Set `VITE_API_URL` in `frontend/.env` if the API is not at `http://localhost:8000`. Without local SMTP, use `MAIL_MAILER=log`. Start a worker and scheduler separately with `php artisan queue:work` and `php artisan schedule:work`. Target alerts go to the assigned technician, or administrators when no technician is assigned, once within an hour of the target and once after it passes.
 
 ## Docker setup
 

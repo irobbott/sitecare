@@ -401,6 +401,10 @@ class SiteCareController extends Controller
             $data['response_due_at'] = now()->addHours($targets[$data['priority']] ?? 24);
             $resolutionTargets = PlatformSetting::firstOrCreate(['key' => 'ticket_resolution_targets'], ['value' => ['low' => 240, 'normal' => 120, 'high' => 24, 'urgent' => 8]])->value;
             $data['resolution_due_at'] = now()->addHours($resolutionTargets[$data['priority']] ?? 120);
+            $data['response_target_warned_at'] = null;
+            $data['response_target_overdue_at'] = null;
+            $data['resolution_target_warned_at'] = null;
+            $data['resolution_target_overdue_at'] = null;
             if ($ticket->status === 'waiting_for_client' && $ticket->waiting_since && !array_key_exists('waiting_since', $data)) {
                 $pausedSeconds = max(0, (int) $ticket->waiting_since->diffInSeconds(now()));
                 $data['client_wait_seconds'] = $ticket->client_wait_seconds + $pausedSeconds;
