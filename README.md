@@ -125,6 +125,8 @@ npm run test:e2e
 
 The backend includes focused tests for SSRF, tenant isolation, website review, password recovery, account settings, ticket categories, attachments, notifications, backups and SSL. Frontend unit coverage is small; Playwright checks the dashboard, workspace navigation and password-reset screen. The browser suite builds and serves the production bundle. OpenAPI and the Postman collection cover only implemented routes.
 
+If Playwright's bundled browser is not installed, the browser suite can use an existing Chrome or Edge installation by setting `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` to its executable before running the tests.
+
 GitHub Actions runs backend tests on PHP 8.3 and frontend lint, type, unit and browser checks on pushes and pull requests to `main`. This is useful when a local PHP installation is older than Laravel's supported version.
 
 ## Security and production notes
