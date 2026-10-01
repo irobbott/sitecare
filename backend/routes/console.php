@@ -11,7 +11,7 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Artisan::command('sitecare:monitor-due', function () {
-    $due=Website::query()->where('status','active')->where(function($query){$query->whereNull('last_checked_at')->orWhereRaw('last_checked_at <= DATE_SUB(UTC_TIMESTAMP(), INTERVAL monitor_interval MINUTE)');})->limit(500)->get(['id']);
+    $due=Website::query()->where('status','active')->whereHas('organisation',fn($query)=>$query->where('status','active'))->where(function($query){$query->whereNull('last_checked_at')->orWhereRaw('last_checked_at <= DATE_SUB(UTC_TIMESTAMP(), INTERVAL monitor_interval MINUTE)');})->limit(500)->get(['id']);
     foreach($due as $website) CheckWebsite::dispatch($website->id);
     $this->info("Dispatched {$due->count()} website checks.");
 })->purpose('Queue due health checks for approved websites');

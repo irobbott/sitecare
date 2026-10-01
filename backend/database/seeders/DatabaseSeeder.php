@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Models\Organisation;
 use App\Models\Website;
 use App\Models\Ticket;
+use App\Models\TicketCategory;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -18,6 +19,14 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        foreach ([
+            'Website unavailable', 'Broken feature', 'Content update', 'Design or layout issue',
+            'Performance', 'Security concern', 'Domain or DNS', 'SSL certificate', 'Backup request',
+            'Email or form issue', 'E-commerce issue', 'Other',
+        ] as $order => $name) {
+            TicketCategory::firstOrCreate(['name' => $name], ['sort_order' => $order]);
+        }
+
         $organisation=Organisation::firstOrCreate(['slug'=>'northstar-studio'],['name'=>'Northstar Studio','contact_email'=>'hello@northstar.test','status'=>'active']);
         $admin=User::firstOrCreate(['email'=>'admin@sitecare.test'],['name'=>'Demo Administrator','password'=>'password','role'=>'admin','is_demo'=>true]);
         $technician=User::firstOrCreate(['email'=>'tech@sitecare.test'],['name'=>'Morgan Lee','password'=>'password','role'=>'technician','is_demo'=>true]);

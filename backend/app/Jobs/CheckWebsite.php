@@ -40,6 +40,7 @@ class CheckWebsite implements ShouldQueue,ShouldBeUnique
     {
         $users=\App\Models\User::where('organisation_id',$website->organisation_id)->where('role','client')->get();
         if($website->technician)$users->push($website->technician);
+        $users=$users->merge(\App\Models\User::where('role','admin')->get());
         foreach($users->unique('id') as $user)$user->notify(new SiteCareAlert($title,$message,'/'));
     }
 }

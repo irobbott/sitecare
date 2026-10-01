@@ -1,23 +1,28 @@
 # SiteCare
 
-SiteCare is a website maintenance workspace for a small agency and its clients. Clients can submit a site for review and follow support tickets. Staff can review the submitted work, assign tickets and run scheduled availability checks. This repository is an early, usable foundation for that product, with a polished React dashboard and a Laravel REST API.
+SiteCare is a website maintenance workspace for agencies and the organisations they support. Clients can submit websites, open support requests and follow service history. Administrators and technicians can review work, assign tickets, monitor uptime and SSL certificates, record maintenance and backup events, and keep an audit trail. The repository contains a React dashboard and a Laravel REST API.
 
 ## What is implemented
 
 - Laravel 13 API and React 19 + TypeScript single-page application.
 - Cookie-based SPA authentication through Laravel Sanctum; there is no public registration route.
-- Organisation, user, website, ticket, comment, uptime-check, incident, backup-record, invitation and audit-log tables.
+- Organisation, user, website, ticket, comment, private attachment, uptime-check, SSL-check, incident, backup-record, invitation, notification and audit-log tables.
 - Client website submissions start pending and are not monitored until activated by staff.
-- Administrator invitation APIs create random expiring one-time tokens, queue email and accept/revoke invitations; the invited user has a small browser acceptance form.
+- Administrators can create or suspend client organisations, manage team roles, and create or revoke invitations. Invitation and password-reset emails are queued; both flows use expiring, single-use tokens.
+- Users can edit their profile, change their password, request a password reset and choose in-app and email notification preferences.
+- Ticket attachments accept PNG, JPEG, WebP, PDF, plain text and ZIP files up to 5 MB. Files use randomized names in private storage and downloads check ticket access.
 - Staff can add maintenance and backup records. Backup webhooks use encrypted per-site secrets, HMAC-SHA256, a five-minute replay window and per-site event-id deduplication.
 - Clients can view client-visible maintenance entries, backup summaries and incidents; staff can acknowledge incidents.
 - Organisation-scoped website and ticket queries, role checks, internal comment filtering, ticket status transitions and audit entries for implemented changes.
-- A queued monitor command with a configurable minimum interval and basic incident open/recovery handling.
+- Ticket categories are seeded with common maintenance request types. Administrators can add, disable and re-enable categories; old tickets keep their original category label.
+- A queued monitor command checks approved sites on configured intervals, records uptime and SSL certificate history, and opens or recovers incidents after consecutive failures.
+- SSL checks pin the resolved public IP, request TLS metadata using the site's hostname for SNI, validate the certificate chain and hostname, and deduplicate expiry alerts at 30, 14, 7, 3 and 1 day thresholds.
+- Ticket assignment, client replies, website reviews, incidents, SSL expiry and password recovery can create in-app and queued email notifications. Internal staff notes never notify clients.
 - Local MySQL, queue worker, scheduler and Mailpit services in Compose.
 - Responsive dashboard UI with demo preview data.
-- Working website submission/review, ticket/comment, maintenance, backup, incident, team invitation and report screens that consume the REST API.
+- Working website submission and health details, ticket assignment/comments/attachments, maintenance, backup, incident, organisation/team, profile, notification, password-reset and report screens that consume the REST API.
 
-The brief describes a much wider product than this first implementation. Password reset, richer admin screens, file attachments, SSL inspection, notification preferences, complete audit coverage, analytics, detailed health tabs and comprehensive automated coverage still need implementation. Backup entries are operator-reported; a signed event does not prove a backup can be restored. Do not use this version as a production service.
+Some larger product areas still need more depth: platform-wide settings, richer analytics, complete audit coverage, business-hour response-target calculations, notification coverage for every event, and broader automated workflow coverage. Backup entries are operator-reported; a signed event does not prove a backup can be restored. Do not use this version as a production service.
 
 ## Roles and tenant boundaries
 
@@ -29,9 +34,9 @@ Tickets begin open. Normal transitions are checked in the update endpoint across
 
 ## Monitoring behaviour and limits
 
-Run `php artisan sitecare:monitor-due` to queue checks for active websites. Checks use a 4-second connection timeout, a 12-second request timeout, TLS verification, a fixed user agent and no redirect following. 2xx and 3xx responses count as available. Two consecutive recent failures open one incident; a successful check recovers it. The scheduler invokes the command every minute and unique jobs reduce duplicate dispatches.
+Run `php artisan sitecare:monitor-due` to queue checks for active websites in active organisations. Checks use a 4-second connection timeout, a 12-second request timeout, TLS verification, a fixed user agent and no redirect following. 2xx and 3xx responses count as available. Two consecutive recent failures open one incident; a successful check recovers it. HTTPS checks record certificate subject, issuer, validity dates, chain validation and hostname matching. The scheduler invokes the command every minute and unique jobs reduce duplicate dispatches.
 
-`SafeWebsiteUrl` permits HTTP/HTTPS on ports 80/443, rejects credentials and non-public IP ranges, checks A and AAAA results, and pins the selected address in cURL. Redirects are not followed. This still needs a production egress proxy that blocks private, link-local, metadata and reserved ranges at the network layer. Monitoring currently records no SSL certificate details.
+`SafeWebsiteUrl` permits HTTP/HTTPS on ports 80/443, rejects credentials and non-public IP ranges, checks A and AAAA results, and pins the selected address in cURL. SSL inspection uses that same validated public address and sends the original hostname as SNI. Redirects are not followed. This still needs a production egress proxy that blocks private, link-local, metadata and reserved ranges at the network layer.
 
 SiteCare records check results and operator-reported backup events; it does not control client hosting or create backups. A backup marked verified means an operator marked it that way; SiteCare has not tested a restore.
 
@@ -49,7 +54,7 @@ examples/      Backup signing example
 docs/          Architecture notes
 ```
 
-The API base is `/api/v1`. Implemented routes cover authentication, invitations, dashboard, website submission and review, tickets and comments, maintenance and backup records, signed backup webhooks, and incidents. `/api/health` and Laravel's `/up` are health checks. Cookie-authenticated SPA requests first fetch `/sanctum/csrf-cookie`.
+The API base is `/api/v1`. Routes cover authentication, password reset, profile and notification settings, invitations and team access, organisation management, dashboard, website submission/review/health, tickets/comments/attachments, maintenance and backup records, signed backup webhooks, incidents and monitoring history. `/api/health` and Laravel's `/up` are health checks. Cookie-authenticated SPA requests first fetch `/sanctum/csrf-cookie`.
 
 ## Backup records and webhook signing
 

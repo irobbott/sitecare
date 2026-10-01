@@ -93,6 +93,7 @@ class SslCertificateMonitor
             if (!$inserted) continue;
             $users=\App\Models\User::where('organisation_id',$website->organisation_id)->where('role','client')->get();
             if ($website->technician) $users->push($website->technician);
+            $users=$users->merge(\App\Models\User::where('role','admin')->get());
             foreach ($users->unique('id') as $user) {
                 $user->notify(new SiteCareAlert('SSL certificate expiring',$website->name.' certificate expires in '.$check->days_remaining.' day(s).','/'));
             }

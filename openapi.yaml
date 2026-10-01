@@ -1,8 +1,8 @@
 openapi: 3.1.0
 info:
   title: SiteCare API
-  version: 0.1.0
-  description: Implemented first milestone routes. Authentication uses Sanctum session cookies and CSRF.
+  version: 1.0.0
+  description: SiteCare REST API. Authentication uses Sanctum session cookies and CSRF for stateful browser requests.
 servers:
   - url: http://localhost:8000/api
 paths:
@@ -27,6 +27,19 @@ paths:
       responses:
         '200': {description: Signed in}
         '422': {description: Invalid credentials or input}
+  /v1/auth/forgot-password:
+    post:
+      summary: Request a password reset email
+      responses: {'202': {description: Generic response to prevent account enumeration}}
+  /v1/auth/reset-password:
+    post:
+      summary: Replace a password using a single-use reset token
+      responses: {'200': {description: Password reset}, '422': {description: Invalid or expired token}}
+  /v1/auth/profile:
+    patch:
+      security: [{cookieAuth: []}]
+      summary: Update the current user's profile and optionally password
+      responses: {'200': {description: Updated profile}, '422': {description: Validation or current-password error}}
   /v1/auth/me:
     get:
       security: [{cookieAuth: []}]
@@ -55,6 +68,63 @@ paths:
           required: true
           schema: {type: integer}
       responses: {'204': {description: Invitation revoked}}
+  /v1/organisations:
+    get:
+      security: [{cookieAuth: []}]
+      summary: List client organisations (administrators only)
+      responses: {'200': {description: Paginated organisations with user, website and ticket counts}}
+    post:
+      security: [{cookieAuth: []}]
+      summary: Create a client organisation (administrators only)
+      responses: {'201': {description: Organisation created}}
+  /v1/organisations/{organisation}:
+    patch:
+      security: [{cookieAuth: []}]
+      parameters:
+        - in: path
+          name: organisation
+          required: true
+          schema: {type: integer}
+      responses: {'200': {description: Organisation details or active/suspended state updated}}
+  /v1/team:
+    get:
+      security: [{cookieAuth: []}]
+      summary: List team members (administrators only)
+      responses: {'200': {description: Paginated team directory}}
+  /v1/team/{member}:
+    patch:
+      security: [{cookieAuth: []}]
+      parameters:
+        - in: path
+          name: member
+          required: true
+          schema: {type: integer}
+      responses: {'200': {description: Team member role updated}}
+  /v1/audit-logs:
+    get:
+      security: [{cookieAuth: []}]
+      summary: List the administrative audit history
+      responses: {'200': {description: Paginated audit history; administrators only}}
+  /v1/notifications:
+    get:
+      security: [{cookieAuth: []}]
+      responses: {'200': {description: Current user's notifications}}
+  /v1/notifications/{notification}:
+    patch:
+      security: [{cookieAuth: []}]
+      parameters:
+        - in: path
+          name: notification
+          required: true
+          schema: {type: string, format: uuid}
+      responses: {'200': {description: Notification marked read}}
+  /v1/notification-preferences:
+    get:
+      security: [{cookieAuth: []}]
+      responses: {'200': {description: Current user's notification preferences}}
+    patch:
+      security: [{cookieAuth: []}]
+      responses: {'200': {description: Notification preferences updated}}
   /v1/dashboard:
     get:
       security: [{cookieAuth: []}]
@@ -75,6 +145,25 @@ paths:
           required: true
           schema: {type: integer}
       responses: {'200': {description: Website reviewed by an administrator}}
+  /v1/websites/{website}/health:
+    get:
+      security: [{cookieAuth: []}]
+      parameters:
+        - in: path
+          name: website
+          required: true
+          schema: {type: integer}
+      responses: {'200': {description: Scoped uptime, SSL and incident history}}
+  /v1/websites/{website}/check:
+    post:
+      security: [{cookieAuth: []}]
+      summary: Queue an authorized manual health and SSL check
+      parameters:
+        - in: path
+          name: website
+          required: true
+          schema: {type: integer}
+      responses: {'202': {description: Check queued for staff on an active website}}
   /v1/websites/{website}/backups:
     get:
       security: [{cookieAuth: []}]
@@ -125,6 +214,22 @@ paths:
     post:
       security: [{cookieAuth: []}]
       responses: {'201': {description: Ticket created}}
+  /v1/ticket-categories:
+    get:
+      security: [{cookieAuth: []}]
+      responses: {'200': {description: Active categories, or all categories for administrators}}
+    post:
+      security: [{cookieAuth: []}]
+      responses: {'201': {description: Administrator created a category}}
+  /v1/ticket-categories/{category}:
+    patch:
+      security: [{cookieAuth: []}]
+      parameters:
+        - in: path
+          name: category
+          required: true
+          schema: {type: integer}
+      responses: {'200': {description: Administrator renamed or activated a category}}
   /v1/tickets/{ticket}:
     patch:
       security: [{cookieAuth: []}]
@@ -160,6 +265,41 @@ paths:
           required: true
           schema: {type: integer}
       responses: {'200': {description: Status, priority and assignment history}}
+  /v1/tickets/{ticket}/attachments:
+    get:
+      security: [{cookieAuth: []}]
+      parameters:
+        - in: path
+          name: ticket
+          required: true
+          schema: {type: integer}
+      responses: {'200': {description: Attachments available to ticket participants}}
+    post:
+      security: [{cookieAuth: []}]
+      parameters:
+        - in: path
+          name: ticket
+          required: true
+          schema: {type: integer}
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: {type: string, format: binary}
+      responses: {'201': {description: Private ticket attachment stored}}
+  /v1/attachments/{attachment}:
+    get:
+      security: [{cookieAuth: []}]
+      parameters:
+        - in: path
+          name: attachment
+          required: true
+          schema: {type: integer}
+      responses: {'200': {description: Authorized attachment download}, '404': {description: Missing or inaccessible attachment}}
   /v1/incidents:
     get:
       security: [{cookieAuth: []}]

@@ -6,6 +6,8 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
     Route::post('/auth/login',[SiteCareController::class,'login'])->middleware('throttle:5,1');
+    Route::post('/auth/forgot-password',[SiteCareController::class,'forgotPassword'])->middleware('throttle:5,1');
+    Route::post('/auth/reset-password',[SiteCareController::class,'resetPassword'])->middleware('throttle:5,1');
     Route::post('/invitations/accept',[SiteCareController::class,'acceptInvitation'])->middleware('throttle:10,1');
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('/auth/me',[SiteCareController::class,'me']);
@@ -13,13 +15,21 @@ Route::prefix('v1')->group(function () {
         Route::get('/notifications',[SiteCareController::class,'notifications']);
         Route::patch('/notifications/{notification}',[SiteCareController::class,'readNotification']);
         Route::patch('/notification-preferences',[SiteCareController::class,'updateNotificationPreferences']);
+        Route::get('/notification-preferences',[SiteCareController::class,'notificationPreferences']);
         Route::post('/auth/logout',[SiteCareController::class,'logout']);
         Route::get('/invitations',[SiteCareController::class,'invitations']);
         Route::post('/invitations',[SiteCareController::class,'storeInvitation'])->middleware('throttle:10,1');
         Route::delete('/invitations/{invitation}',[SiteCareController::class,'revokeInvitation']);
+        Route::get('/organisations',[SiteCareController::class,'organisations']);
+        Route::post('/organisations',[SiteCareController::class,'storeOrganisation']);
+        Route::patch('/organisations/{organisation}',[SiteCareController::class,'updateOrganisation']);
+        Route::get('/team',[SiteCareController::class,'team']);
+        Route::patch('/team/{member}',[SiteCareController::class,'updateTeamMember']);
+        Route::get('/audit-logs',[SiteCareController::class,'auditLogs']);
         Route::get('/dashboard',[SiteCareController::class,'dashboard']);
         Route::get('/websites',[SiteCareController::class,'websites']);
         Route::get('/websites/{website}/health',[SiteCareController::class,'websiteHealth']);
+        Route::post('/websites/{website}/check',[SiteCareController::class,'checkWebsite'])->middleware('throttle:10,1');
         Route::post('/websites',[SiteCareController::class,'storeWebsite']);
         Route::patch('/websites/{website}',[SiteCareController::class,'reviewWebsite']);
         Route::get('/websites/{website}/backups',[SiteCareController::class,'backups']);
@@ -28,6 +38,9 @@ Route::prefix('v1')->group(function () {
         Route::get('/websites/{website}/maintenance',[SiteCareController::class,'maintenance']);
         Route::post('/websites/{website}/maintenance',[SiteCareController::class,'storeMaintenance']);
         Route::get('/tickets',[SiteCareController::class,'tickets']);
+        Route::get('/ticket-categories',[SiteCareController::class,'ticketCategories']);
+        Route::post('/ticket-categories',[SiteCareController::class,'storeTicketCategory']);
+        Route::patch('/ticket-categories/{category}',[SiteCareController::class,'updateTicketCategory']);
         Route::post('/tickets',[SiteCareController::class,'storeTicket']);
         Route::patch('/tickets/{ticket}',[SiteCareController::class,'updateTicket']);
         Route::get('/tickets/{ticket}/comments',[SiteCareController::class,'comments']);
