@@ -7,6 +7,7 @@ use App\Models\Organisation;
 use App\Models\Website;
 use App\Models\Ticket;
 use App\Models\TicketCategory;
+use App\Models\PlatformSetting;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -26,6 +27,9 @@ class DatabaseSeeder extends Seeder
         ] as $order => $name) {
             TicketCategory::firstOrCreate(['name' => $name], ['sort_order' => $order]);
         }
+        PlatformSetting::firstOrCreate(['key' => 'ticket_response_targets'], [
+            'value' => ['low' => 72, 'normal' => 24, 'high' => 4, 'urgent' => 1],
+        ]);
 
         $organisation=Organisation::firstOrCreate(['slug'=>'northstar-studio'],['name'=>'Northstar Studio','contact_email'=>'hello@northstar.test','status'=>'active']);
         $admin=User::firstOrCreate(['email'=>'admin@sitecare.test'],['name'=>'Demo Administrator','password'=>'password','role'=>'admin','is_demo'=>true]);

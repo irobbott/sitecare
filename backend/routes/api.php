@@ -26,6 +26,8 @@ Route::prefix('v1')->group(function () {
         Route::get('/team',[SiteCareController::class,'team']);
         Route::patch('/team/{member}',[SiteCareController::class,'updateTeamMember']);
         Route::get('/audit-logs',[SiteCareController::class,'auditLogs']);
+        Route::get('/platform-settings',[SiteCareController::class,'platformSettings']);
+        Route::patch('/platform-settings',[SiteCareController::class,'updatePlatformSettings']);
         Route::get('/dashboard',[SiteCareController::class,'dashboard']);
         Route::get('/websites',[SiteCareController::class,'websites']);
         Route::get('/websites/{website}/health',[SiteCareController::class,'websiteHealth']);
