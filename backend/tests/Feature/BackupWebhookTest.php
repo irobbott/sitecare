@@ -3,8 +3,11 @@
 namespace Tests\Feature;
 
 use App\Models\Organisation;
+use App\Models\User;
 use App\Models\Website;
+use App\Notifications\SiteCareAlert;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
 class BackupWebhookTest extends TestCase
@@ -25,5 +28,21 @@ class BackupWebhookTest extends TestCase
         $this->call('POST',$path,[],[],[],$headers,$body)->assertConflict();
         $this->assertDatabaseCount('backup_records',1);
         $this->assertDatabaseCount('backup_webhook_events',1);
+    }
+
+    public function test_failed_backup_webhook_notifies_the_client_team():void
+    {
+        Notification::fake();
+        $organisation=Organisation::create(['name'=>'Example','slug'=>'example','contact_email'=>'ops@example.test']);
+        $client=User::create(['name'=>'Client','email'=>'client@example.test','password'=>'password','role'=>'client','organisation_id'=>$organisation->id]);
+        $website=Website::create(['organisation_id'=>$organisation->id,'name'=>'Example site','url'=>'https://example.com','status'=>'active','webhook_secret'=>'correct horse battery staple']);
+        $timestamp=(string)now()->timestamp;$event='backup-failed-001';
+        $body=json_encode(['type'=>'full_site','status'=>'failed','completed_at'=>now()->toIso8601String()],JSON_THROW_ON_ERROR);
+        $signature=hash_hmac('sha256',$timestamp."\n".$event."\n".$body,'correct horse battery staple');
+        $headers=['HTTP_X_SITECARE_TIMESTAMP'=>$timestamp,'HTTP_X_SITECARE_EVENT_ID'=>$event,'HTTP_X_SITECARE_SIGNATURE'=>$signature,'HTTP_ACCEPT'=>'application/json','CONTENT_TYPE'=>'application/json'];
+
+        $this->call('POST',"/api/v1/webhooks/websites/{$website->id}/backups",[],[],[],$headers,$body)->assertCreated();
+
+        Notification::assertSentTo($client,SiteCareAlert::class,fn($notification)=>$notification->title==='Backup failed');
     }
 }

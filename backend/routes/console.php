@@ -6,6 +6,7 @@ use App\Models\Website;
 use App\Jobs\CheckWebsite;
 use Illuminate\Support\Facades\Schedule;
 use App\Console\Commands\NotifyTicketTargets;
+use App\Console\Commands\NotifyOverdueBackups;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -19,3 +20,4 @@ Artisan::command('sitecare:monitor-due', function () {
 
 Schedule::command('sitecare:monitor-due')->everyMinute()->withoutOverlapping();
 Schedule::command('sitecare:notify-ticket-targets')->everyMinute()->withoutOverlapping();
+Schedule::command('sitecare:notify-overdue-backups')->everyFifteenMinutes()->withoutOverlapping();

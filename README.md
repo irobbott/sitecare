@@ -19,7 +19,7 @@ SiteCare is a website maintenance workspace for agencies and the organisations t
 - Reports include role-scoped ticket status and priority counts, first-response timeliness and 30-day uptime metrics.
 - A queued monitor command checks approved sites on configured intervals, records uptime and SSL certificate history, and opens or recovers incidents after consecutive failures.
 - SSL checks pin the resolved public IP, request TLS metadata using the site's hostname for SNI, validate the certificate chain and hostname, and deduplicate expiry alerts at 30, 14, 7, 3 and 1 day thresholds.
-- Ticket assignment, client replies, response and resolution target alerts, website reviews, incidents, SSL expiry and password recovery can create in-app and queued email notifications. Internal staff notes never notify clients.
+- Ticket assignment, client replies, response and resolution target alerts, overdue or failed backup alerts, website reviews, incidents, SSL expiry and password recovery can create in-app and queued email notifications. Internal staff notes never notify clients.
 - Local MySQL, queue worker, scheduler and Mailpit services in Compose.
 - Responsive dashboard UI with demo preview data.
 - Working website submission and health details, ticket assignment/comments/attachments, maintenance, backup, incident, organisation/team, profile, notification, password-reset and report screens that consume the REST API.

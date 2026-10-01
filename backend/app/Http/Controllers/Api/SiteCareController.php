@@ -304,7 +304,8 @@ class SiteCareController extends Controller
     {
         $this->authorizeWebsite($request,$website);abort_unless($request->user()->isStaff(),403);
         $data=$request->validate(['type'=>'required|in:files,database,full_site,incremental','status'=>'required|in:started,completed,failed,verified','completed_at'=>'required|date','destination'=>'nullable|string|max:255','size_bytes'=>'nullable|integer|min:0|max:1099511627776','verified'=>'sometimes|boolean','notes'=>'nullable|string|max:3000']);
-        $record=$website->backupRecords()->create($data+['recorded_by'=>$request->user()->id]);$this->audit($request,'backup.recorded',$record);
+        $record=$website->backupRecords()->create($data+['recorded_by'=>$request->user()->id]);$website->update(['backup_overdue_notified_at'=>null]);$this->audit($request,'backup.recorded',$record);
+        if($record->status==='failed')$this->notifyBackupFailure($website);
         return response()->json(['data'=>$record],201);
     }
     public function rotateBackupWebhookSecret(Request $request,Website $website)
@@ -323,6 +324,8 @@ class SiteCareController extends Controller
         abort_unless(hash_equals($expected,$signature),401,'Invalid webhook signature.');
         $data=$request->validate(['type'=>'required|in:files,database,full_site,incremental','status'=>'required|in:completed,failed','completed_at'=>'required|date','destination'=>'nullable|string|max:255','size_bytes'=>'nullable|integer|min:0|max:1099511627776','verified'=>'sometimes|boolean','notes'=>'nullable|string|max:3000']);
         $record=DB::transaction(function()use($website,$eventId,$data,$request){$inserted=DB::table('backup_webhook_events')->insertOrIgnore(['website_id'=>$website->id,'event_id'=>$eventId,'received_at'=>now()]);abort_if(!$inserted,409,'This event has already been processed.');$backup=$website->backupRecords()->create($data+['recorded_by'=>null]);AuditLog::create(['organisation_id'=>$website->organisation_id,'action'=>'backup.webhook_received','subject_type'=>'BackupRecord','subject_id'=>$backup->id,'metadata'=>['event_id'=>$eventId,'status'=>$backup->status],'ip_address'=>$request->ip()]);return $backup;});
+        $website->update(['backup_overdue_notified_at'=>null]);
+        if($record->status==='failed')$this->notifyBackupFailure($website);
         return response()->json(['data'=>$record],201);
     }
     public function maintenance(Request $request,Website $website)
@@ -493,5 +496,12 @@ class SiteCareController extends Controller
     private function notify(\App\Models\User $user,string $title,string $message,string $url):void
     {
         if($user->id!==request()->user()?->id)$user->notify(new SiteCareAlert($title,$message,$url));
+    }
+    private function notifyBackupFailure(Website $website):void
+    {
+        $users=\App\Models\User::where('organisation_id',$website->organisation_id)->where('role','client')->get();
+        if($website->technician)$users->push($website->technician);
+        $users=$users->merge(\App\Models\User::where('role','admin')->get());
+        $users->unique('id')->each(fn($user)=>$this->notify($user,'Backup failed',$website->name.' reported a failed backup.','/'));
     }
 }
