@@ -1,0 +1,179 @@
+{
+  "info": {
+    "_postman_id": "836f91be-5abc-48ec-9c79-a4e11c9ef9b1",
+    "name": "SiteCare API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000"
+    },
+    {
+      "key": "csrf",
+      "value": ""
+    },
+    {
+      "key": "ticketId",
+      "value": "1"
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (pm.request.method !== 'GET') {",
+          "  const xsrf = pm.cookies.get('XSRF-TOKEN');",
+          "  if (xsrf) pm.request.headers.upsert({key:'X-XSRF-TOKEN', value:decodeURIComponent(xsrf)});",
+          "}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/health"
+      }
+    },
+    {
+      "name": "Get CSRF cookie",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/sanctum/csrf-cookie"
+      }
+    },
+    {
+      "name": "Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"client@sitecare.test\",\n  \"password\": \"password\"\n}"
+        },
+        "url": "{{baseUrl}}/api/v1/auth/login"
+      }
+    },
+    {
+      "name": "Current user",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/v1/auth/me"
+      }
+    },
+    {
+      "name": "Dashboard",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/v1/dashboard"
+      }
+    },
+    {
+      "name": "Websites",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/v1/websites"
+      }
+    },
+    {
+      "name": "Submit website",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Example production site\",\n  \"url\": \"https://example.com\",\n  \"description\": \"Demo submission\"\n}"
+        },
+        "url": "{{baseUrl}}/api/v1/websites"
+      }
+    },
+    {
+      "name": "Tickets",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/v1/tickets"
+      }
+    },
+    {
+      "name": "Add ticket comment",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"body\": \"I can provide more details if needed.\"\n}"
+        },
+        "url": "{{baseUrl}}/api/v1/tickets/{{ticketId}}/comments"
+      }
+    },
+    {
+      "name": "Logout",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/v1/auth/logout"
+      }
+    }
+  ]
+}

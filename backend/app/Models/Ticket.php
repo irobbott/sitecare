@@ -1,0 +1,18 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+class Ticket extends Model
+{
+    protected $fillable = ['number','organisation_id','website_id','reporter_id','assignee_id','subject','description','category','priority','status','response_due_at','resolved_at','closed_at'];
+    protected function casts(): array { return ['response_due_at'=>'datetime','resolved_at'=>'datetime','closed_at'=>'datetime']; }
+    public function organisation(): BelongsTo { return $this->belongsTo(Organisation::class); }
+    public function website(): BelongsTo { return $this->belongsTo(Website::class); }
+    public function reporter(): BelongsTo { return $this->belongsTo(User::class,'reporter_id'); }
+    public function assignee(): BelongsTo { return $this->belongsTo(User::class,'assignee_id'); }
+    public function comments(): HasMany { return $this->hasMany(TicketComment::class); }
+}

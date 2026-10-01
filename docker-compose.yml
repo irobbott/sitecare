@@ -1,0 +1,52 @@
+services:
+  api:
+    build: ./backend
+    working_dir: /app
+    command: sh -c "php artisan key:generate --force && php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=8000"
+    ports: ["8000:8000"]
+    env_file: ./backend/.env
+    environment:
+      DB_HOST: db
+      MAIL_HOST: mailpit
+      APP_URL: http://localhost:8000
+      SANCTUM_STATEFUL_DOMAINS: localhost:5173,localhost:8080,localhost,127.0.0.1
+    depends_on:
+      db: {condition: service_healthy}
+  queue:
+    build: ./backend
+    working_dir: /app
+    command: php artisan queue:work --sleep=2 --tries=3 --timeout=30
+    env_file: ./backend/.env
+    environment: {DB_HOST: db, MAIL_HOST: mailpit}
+    depends_on:
+      db: {condition: service_healthy}
+  scheduler:
+    build: ./backend
+    working_dir: /app
+    command: sh -c "while true; do php artisan schedule:run --no-interaction; sleep 60; done"
+    env_file: ./backend/.env
+    environment: {DB_HOST: db, MAIL_HOST: mailpit}
+    depends_on:
+      db: {condition: service_healthy}
+  frontend:
+    build: ./frontend
+    ports: ["8080:80"]
+    depends_on: [api]
+  db:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: sitecare
+      MYSQL_USER: sitecare
+      MYSQL_PASSWORD: sitecare-local
+      MYSQL_ROOT_PASSWORD: local-root-password
+    volumes: [sitecare-db:/var/lib/mysql]
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-plocal-root-password"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+  mailpit:
+    image: axllent/mailpit:v1.27
+    ports: ["8025:8025"]
+volumes:
+  sitecare-db:
