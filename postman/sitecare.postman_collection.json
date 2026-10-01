@@ -318,7 +318,7 @@
                                                 ],
                                      "body":  {
                                                   "mode":  "raw",
-                                                  "raw":  "{\"ticket_response_targets\":{\"low\":72,\"normal\":24,\"high\":4,\"urgent\":1}}"
+                                                  "raw":  "{\"ticket_response_targets\":{\"low\":72,\"normal\":24,\"high\":4,\"urgent\":1},\"ticket_resolution_targets\":{\"low\":240,\"normal\":120,\"high\":24,\"urgent\":8}}"
                                               },
                                      "url":  "{{baseUrl}}/api/v1/platform-settings"
                                  }

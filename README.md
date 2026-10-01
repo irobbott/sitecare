@@ -32,7 +32,7 @@ Users have `admin`, `technician`, or `client` roles. Client requests are restric
 
 ## Ticket workflow and response targets
 
-Tickets begin open. Normal transitions are checked in the update endpoint across `open`, `triaged`, `assigned`, `in_progress`, `waiting_for_client`, `resolved`, and `closed`. An administrator can correct a status. By default, response targets use elapsed hours by priority (low 72, normal 24, high 4, urgent 1); administrators can configure them from 1 to 720 hours. The first client-visible staff reply is recorded. Weekends and holidays are not excluded, and the target does not pause while waiting on a client. These dates are internal targets, not service guarantees.
+Tickets begin open. Normal transitions are checked in the update endpoint across `open`, `triaged`, `assigned`, `in_progress`, `waiting_for_client`, `resolved`, and `closed`. An administrator can correct a status. By default, first-response targets use elapsed hours by priority (low 72, normal 24, high 4, urgent 1); resolution targets default to low 240, normal 120, high 24, urgent 8 hours. Administrators can configure both from 1 to 720 hours. Resolution time pauses while a ticket is waiting for the client. The first client-visible staff reply is recorded. Weekends and holidays are not excluded. These dates are internal targets, not service guarantees.
 
 ## Monitoring behaviour and limits
 

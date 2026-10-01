@@ -178,31 +178,43 @@ class SiteCareController extends Controller
 
     public function platformSettings()
     {
-        $settings = PlatformSetting::firstOrCreate(['key' => 'ticket_response_targets'], [
+        $responseTargets = PlatformSetting::firstOrCreate(['key' => 'ticket_response_targets'], [
             'value' => ['low' => 72, 'normal' => 24, 'high' => 4, 'urgent' => 1],
         ]);
-        return ['data' => ['ticket_response_targets' => $settings->value]];
+        $resolutionTargets = PlatformSetting::firstOrCreate(['key' => 'ticket_resolution_targets'], [
+            'value' => ['low' => 240, 'normal' => 120, 'high' => 24, 'urgent' => 8],
+        ]);
+        return ['data' => ['ticket_response_targets' => $responseTargets->value, 'ticket_resolution_targets' => $resolutionTargets->value]];
     }
 
     public function updatePlatformSettings(Request $request)
     {
         abort_unless($request->user()->role === 'admin', 403);
         $data = $request->validate([
-            'ticket_response_targets' => 'required|array:low,normal,high,urgent',
-            'ticket_response_targets.low' => 'required|integer|min:1|max:720',
-            'ticket_response_targets.normal' => 'required|integer|min:1|max:720',
-            'ticket_response_targets.high' => 'required|integer|min:1|max:720',
-            'ticket_response_targets.urgent' => 'required|integer|min:1|max:720',
+            'ticket_response_targets' => 'sometimes|required|array:low,normal,high,urgent',
+            'ticket_response_targets.low' => 'sometimes|required|integer|min:1|max:720',
+            'ticket_response_targets.normal' => 'sometimes|required|integer|min:1|max:720',
+            'ticket_response_targets.high' => 'sometimes|required|integer|min:1|max:720',
+            'ticket_response_targets.urgent' => 'sometimes|required|integer|min:1|max:720',
+            'ticket_resolution_targets' => 'sometimes|required|array:low,normal,high,urgent',
+            'ticket_resolution_targets.low' => 'sometimes|required|integer|min:1|max:720',
+            'ticket_resolution_targets.normal' => 'sometimes|required|integer|min:1|max:720',
+            'ticket_resolution_targets.high' => 'sometimes|required|integer|min:1|max:720',
+            'ticket_resolution_targets.urgent' => 'sometimes|required|integer|min:1|max:720',
         ]);
-        $settings = PlatformSetting::updateOrCreate(['key' => 'ticket_response_targets'], ['value' => $data['ticket_response_targets']]);
+        abort_if(empty($data), 422, 'Provide at least one settings group.');
+        $responseTargets = $data['ticket_response_targets'] ?? PlatformSetting::firstOrCreate(['key' => 'ticket_response_targets'], ['value' => ['low' => 72, 'normal' => 24, 'high' => 4, 'urgent' => 1]])->value;
+        $resolutionTargets = $data['ticket_resolution_targets'] ?? PlatformSetting::firstOrCreate(['key' => 'ticket_resolution_targets'], ['value' => ['low' => 240, 'normal' => 120, 'high' => 24, 'urgent' => 8]])->value;
+        PlatformSetting::updateOrCreate(['key' => 'ticket_response_targets'], ['value' => $responseTargets]);
+        PlatformSetting::updateOrCreate(['key' => 'ticket_resolution_targets'], ['value' => $resolutionTargets]);
         AuditLog::create([
             'actor_id' => $request->user()->id,
-            'action' => 'platform.response_targets_updated',
+            'action' => 'platform.ticket_targets_updated',
             'subject_type' => 'PlatformSetting',
-            'metadata' => $data['ticket_response_targets'],
+            'metadata' => ['response' => $responseTargets, 'resolution' => $resolutionTargets],
             'ip_address' => $request->ip(),
         ]);
-        return ['data' => ['ticket_response_targets' => $settings->value]];
+        return ['data' => ['ticket_response_targets' => $responseTargets, 'ticket_resolution_targets' => $resolutionTargets]];
     }
 
     public function dashboard(Request $request)
@@ -374,7 +386,7 @@ class SiteCareController extends Controller
         abort_unless($request->user()->role==='client'&&$request->user()->organisation?->status==='active',403); $data=$request->validate(['website_id'=>'required|integer','subject'=>'required|string|max:180','description'=>'required|string|max:10000','category'=>'required|string|exists:ticket_categories,name','priority'=>'required|in:low,normal,high,urgent']);
         abort_unless(TicketCategory::where('name', $data['category'])->where('is_active', true)->exists(), 422, 'Choose an active ticket category.');
         $website=Website::where('organisation_id',$request->user()->organisation_id)->where('status','active')->findOrFail($data['website_id']);
-        $ticket=DB::transaction(function()use($data,$website,$request){$number='SC-'.now()->format('Y').'-'.str_pad((string)(Ticket::whereYear('created_at',now()->year)->lockForUpdate()->count()+1),5,'0',STR_PAD_LEFT);$targets=PlatformSetting::firstOrCreate(['key'=>'ticket_response_targets'],['value'=>['low'=>72,'normal'=>24,'high'=>4,'urgent'=>1]])->value;$hours=$targets[$data['priority']]??24;$ticket=Ticket::create($data+['number'=>$number,'website_id'=>$website->id,'organisation_id'=>$website->organisation_id,'reporter_id'=>$request->user()->id,'status'=>'open','response_due_at'=>now()->addHours($hours)]);$ticket->events()->create(['actor_id'=>$request->user()->id,'event_type'=>'created','after_data'=>['status'=>'open','priority'=>$ticket->priority]]);return $ticket;});
+        $ticket=DB::transaction(function()use($data,$website,$request){$number='SC-'.now()->format('Y').'-'.str_pad((string)(Ticket::whereYear('created_at',now()->year)->lockForUpdate()->count()+1),5,'0',STR_PAD_LEFT);$responseTargets=PlatformSetting::firstOrCreate(['key'=>'ticket_response_targets'],['value'=>['low'=>72,'normal'=>24,'high'=>4,'urgent'=>1]])->value;$resolutionTargets=PlatformSetting::firstOrCreate(['key'=>'ticket_resolution_targets'],['value'=>['low'=>240,'normal'=>120,'high'=>24,'urgent'=>8]])->value;$ticket=Ticket::create($data+['number'=>$number,'website_id'=>$website->id,'organisation_id'=>$website->organisation_id,'reporter_id'=>$request->user()->id,'status'=>'open','response_due_at'=>now()->addHours($responseTargets[$data['priority']]??24),'resolution_due_at'=>now()->addHours($resolutionTargets[$data['priority']]??120)]);$ticket->events()->create(['actor_id'=>$request->user()->id,'event_type'=>'created','after_data'=>['status'=>'open','priority'=>$ticket->priority]]);return $ticket;});
         $this->audit($request,'ticket.created',$ticket);
         \App\Models\User::where('role','admin')->get()->each(fn($admin)=>$this->notify($admin,'New support ticket',$ticket->number.' · '.$ticket->subject,'/'));
         return response()->json(['data'=>$ticket],201);
@@ -382,11 +394,18 @@ class SiteCareController extends Controller
     public function updateTicket(Request $request,Ticket $ticket)
     {
         $this->authorizeTicket($request,$ticket); $data=$request->validate(['status'=>'sometimes|in:open,triaged,assigned,in_progress,waiting_for_client,resolved,closed','priority'=>'sometimes|in:low,normal,high,urgent','assignee_id'=>'sometimes|nullable|exists:users,id']);
-        if (isset($data['status'])) {$transitions=['open'=>['triaged','assigned'],'triaged'=>['assigned','in_progress'],'assigned'=>['in_progress','waiting_for_client'],'in_progress'=>['waiting_for_client','resolved'],'waiting_for_client'=>['in_progress','resolved'],'resolved'=>['open','closed'],'closed'=>[]];$role=$request->user()->role;$allowed=$role==='admin'||($role==='client'&&$ticket->status==='resolved'&&$data['status']==='open')||($role==='technician'&&in_array($data['status'],$transitions[$ticket->status]??[],true));abort_unless($allowed,422,'Invalid status transition.');if($data['status']==='resolved'){$data['resolved_at']=now();$data['closed_at']=null;}if($data['status']==='closed')$data['closed_at']=now();if($data['status']==='open'&&in_array($ticket->status,['resolved','closed'],true)){$data['resolved_at']=null;$data['closed_at']=null;}}
+        if (isset($data['status'])) {$transitions=['open'=>['triaged','assigned'],'triaged'=>['assigned','in_progress'],'assigned'=>['in_progress','waiting_for_client'],'in_progress'=>['waiting_for_client','resolved'],'waiting_for_client'=>['in_progress','resolved'],'resolved'=>['open','closed'],'closed'=>[]];$role=$request->user()->role;$allowed=$role==='admin'||($role==='client'&&$ticket->status==='resolved'&&$data['status']==='open')||($role==='technician'&&in_array($data['status'],$transitions[$ticket->status]??[],true));abort_unless($allowed,422,'Invalid status transition.');if($data['status']==='resolved'){$data['resolved_at']=now();$data['closed_at']=null;}if($data['status']==='closed')$data['closed_at']=now();if($data['status']==='open'&&in_array($ticket->status,['resolved','closed'],true)){$data['resolved_at']=null;$data['closed_at']=null;}if($data['status']==='waiting_for_client'&&$ticket->status!=='waiting_for_client')$data['waiting_since']=now();if($ticket->status==='waiting_for_client'&&$data['status']!=='waiting_for_client'&&$ticket->waiting_since){$pausedSeconds=max(0,(int)$ticket->waiting_since->diffInSeconds(now()));$data['client_wait_seconds']=$ticket->client_wait_seconds+$pausedSeconds;$data['resolution_due_at']=$ticket->resolution_due_at?->copy()->addSeconds($pausedSeconds);$data['waiting_since']=null;}}
         if (isset($data['priority']) && $data['priority'] !== $ticket->priority) {
             abort_unless($request->user()->role === 'admin', 403);
             $targets = PlatformSetting::firstOrCreate(['key' => 'ticket_response_targets'], ['value' => ['low' => 72, 'normal' => 24, 'high' => 4, 'urgent' => 1]])->value;
             $data['response_due_at'] = now()->addHours($targets[$data['priority']] ?? 24);
+            $resolutionTargets = PlatformSetting::firstOrCreate(['key' => 'ticket_resolution_targets'], ['value' => ['low' => 240, 'normal' => 120, 'high' => 24, 'urgent' => 8]])->value;
+            $data['resolution_due_at'] = now()->addHours($resolutionTargets[$data['priority']] ?? 120);
+            if ($ticket->status === 'waiting_for_client' && $ticket->waiting_since && !array_key_exists('waiting_since', $data)) {
+                $pausedSeconds = max(0, (int) $ticket->waiting_since->diffInSeconds(now()));
+                $data['client_wait_seconds'] = $ticket->client_wait_seconds + $pausedSeconds;
+                $data['waiting_since'] = now();
+            }
         }
         if(array_key_exists('assignee_id',$data)){abort_unless($request->user()->role==='admin',403);if($data['assignee_id']!==null)abort_unless(\App\Models\User::whereKey($data['assignee_id'])->where('role','technician')->exists(),422,'Assigned user must be a technician.');}
         $before=$ticket->only(['status','assignee_id']);

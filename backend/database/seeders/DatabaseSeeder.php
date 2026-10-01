@@ -30,6 +30,9 @@ class DatabaseSeeder extends Seeder
         PlatformSetting::firstOrCreate(['key' => 'ticket_response_targets'], [
             'value' => ['low' => 72, 'normal' => 24, 'high' => 4, 'urgent' => 1],
         ]);
+        PlatformSetting::firstOrCreate(['key' => 'ticket_resolution_targets'], [
+            'value' => ['low' => 240, 'normal' => 120, 'high' => 24, 'urgent' => 8],
+        ]);
 
         $organisation=Organisation::firstOrCreate(['slug'=>'northstar-studio'],['name'=>'Northstar Studio','contact_email'=>'hello@northstar.test','status'=>'active']);
         $admin=User::firstOrCreate(['email'=>'admin@sitecare.test'],['name'=>'Demo Administrator','password'=>'password','role'=>'admin','is_demo'=>true]);

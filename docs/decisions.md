@@ -20,4 +20,4 @@ Ticket targets use elapsed hours by priority. This first version does not implem
 
 Invitation creation, queued email and acceptance are implemented through the API and administrator screen. Password reset, private attachment storage, SSL certificate history, incident alerts, configurable response targets and notification preferences are also implemented. Signed backup events encrypt per-site secrets and reject stale or repeated event IDs.
 
-The current target calculation uses elapsed hours and does not pause while waiting for a client. Broader audit coverage, business-hour calendars, richer analytics, health-history retention, production egress filtering and more role-isolation workflow tests remain future work.
+First-response and resolution targets use elapsed hours. Resolution deadlines pause while a ticket is waiting for the client; first-response deadlines do not. Business-hour calendars, richer analytics, health-history retention, production egress filtering and more role-isolation workflow tests remain future work.

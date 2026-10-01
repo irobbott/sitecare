@@ -233,7 +233,7 @@ paths:
   /v1/platform-settings:
     get:
       security: [{cookieAuth: []}]
-      responses: {'200': {description: Ticket response targets for the workspace}}
+      responses: {'200': {description: First-response and resolution targets for the workspace}}
     patch:
       security: [{cookieAuth: []}]
       requestBody:
@@ -242,7 +242,6 @@ paths:
           application/json:
             schema:
               type: object
-              required: [ticket_response_targets]
               properties:
                 ticket_response_targets:
                   type: object
@@ -252,7 +251,15 @@ paths:
                     normal: {type: integer, minimum: 1, maximum: 720}
                     high: {type: integer, minimum: 1, maximum: 720}
                     urgent: {type: integer, minimum: 1, maximum: 720}
-      responses: {'200': {description: Administrator updated ticket response targets}}
+                ticket_resolution_targets:
+                  type: object
+                  required: [low, normal, high, urgent]
+                  properties:
+                    low: {type: integer, minimum: 1, maximum: 720}
+                    normal: {type: integer, minimum: 1, maximum: 720}
+                    high: {type: integer, minimum: 1, maximum: 720}
+                    urgent: {type: integer, minimum: 1, maximum: 720}
+      responses: {'200': {description: Administrator updated one or both ticket target groups}}
   /v1/tickets/{ticket}:
     patch:
       security: [{cookieAuth: []}]
