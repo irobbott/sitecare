@@ -105,6 +105,17 @@ class SiteCareController extends Controller
             'recent_tickets'=>(clone $tickets)->with('website:id,name')->latest()->limit(6)->get(),'recent_websites'=>(clone $websites)->latest()->limit(5)->get(['id','name','url','status','is_up','response_ms','last_checked_at'])]];
     }
     public function websites(Request $request) { return $this->websiteQuery($request)->with('technician:id,name')->latest()->paginate(15); }
+    public function websiteHealth(Request $request,Website $website)
+    {
+        $this->authorizeWebsite($request,$website);
+        $latestSsl=$website->sslChecks()->latest('checked_at')->first();
+        return ['data'=>[
+            'website'=>$website->only('id','name','url','status','is_up','response_ms','last_checked_at'),
+            'ssl'=>$latestSsl,
+            'uptime_checks'=>$website->checks()->latest('checked_at')->limit(30)->get(),
+            'incidents'=>$website->incidents()->latest('started_at')->limit(10)->get(),
+        ]];
+    }
     private function websiteQuery(Request $request) { $user=$request->user();return Website::query()->when(!$user->isStaff(),fn($q)=>$q->where('organisation_id',$user->organisation_id))->when($user->role==='client'&&$user->organisation?->status!=='active',fn($q)=>$q->whereRaw('1 = 0'))->when($user->role==='technician',fn($q)=>$q->where('technician_id',$user->id)); }
 
     public function storeWebsite(Request $request,SafeWebsiteUrl $safe)

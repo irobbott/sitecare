@@ -15,6 +15,8 @@ class Website extends Model
     public function technician(): BelongsTo { return $this->belongsTo(User::class,'technician_id'); }
     public function tickets(): HasMany { return $this->hasMany(Ticket::class); }
     public function checks(): HasMany { return $this->hasMany(UptimeCheck::class); }
+    public function sslChecks(): HasMany { return $this->hasMany(SslCheck::class); }
     public function backupRecords(): HasMany { return $this->hasMany(BackupRecord::class); }
     public function maintenanceRecords(): HasMany { return $this->hasMany(MaintenanceRecord::class); }
+    public function incidents(): HasMany { return $this->hasMany(Incident::class); }
 }

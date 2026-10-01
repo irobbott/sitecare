@@ -19,6 +19,7 @@ Route::prefix('v1')->group(function () {
         Route::delete('/invitations/{invitation}',[SiteCareController::class,'revokeInvitation']);
         Route::get('/dashboard',[SiteCareController::class,'dashboard']);
         Route::get('/websites',[SiteCareController::class,'websites']);
+        Route::get('/websites/{website}/health',[SiteCareController::class,'websiteHealth']);
         Route::post('/websites',[SiteCareController::class,'storeWebsite']);
         Route::patch('/websites/{website}',[SiteCareController::class,'reviewWebsite']);
         Route::get('/websites/{website}/backups',[SiteCareController::class,'backups']);

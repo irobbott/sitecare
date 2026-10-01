@@ -3,7 +3,8 @@
 namespace App\Jobs;
 
 use App\Models\{Incident,UptimeCheck,Website};
-use App\Services\SafeWebsiteUrl;
+use App\Notifications\SiteCareAlert;
+use App\Services\{SafeWebsiteUrl,SslCertificateMonitor};
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -19,7 +20,7 @@ class CheckWebsite implements ShouldQueue,ShouldBeUnique
     public int $uniqueFor=900;
     public function __construct(public int $websiteId){}
     public function uniqueId():string{return (string)$this->websiteId;}
-    public function handle(SafeWebsiteUrl $safe):void
+    public function handle(SafeWebsiteUrl $safe,SslCertificateMonitor $sslMonitor):void
     {
         $website=Website::with('organisation')->find($this->websiteId);
         if(!$website||$website->status!=='active'||$website->organisation?->status!=='active')return;
@@ -30,7 +31,15 @@ class CheckWebsite implements ShouldQueue,ShouldBeUnique
         UptimeCheck::create(['website_id'=>$website->id,'checked_url'=>$website->url,'checked_at'=>$checked,'status_code'=>$code,'available'=>$available,'response_ms'=>$elapsed,'error_type'=>$error,'message'=>$message]);
         $website->update(['last_checked_at'=>$checked,'is_up'=>$available,'response_ms'=>$elapsed]);
         $incident=Incident::where('website_id',$website->id)->whereNull('recovered_at')->first();
-        if(!$available){$recent=UptimeCheck::where('website_id',$website->id)->latest('checked_at')->take(2)->pluck('available');$consecutive=$recent->count()===2&&$recent->every(fn($state)=>!(bool)$state);if($incident){$incident->increment('failed_checks');$incident->update(['last_error'=>$message]);}elseif($consecutive){Incident::create(['website_id'=>$website->id,'started_at'=>$checked,'status'=>'open','last_error'=>$message,'failed_checks'=>2]);}}
-        elseif($incident){$incident->update(['recovered_at'=>$checked,'status'=>'recovered']);}
+        if(!$available){$recent=UptimeCheck::where('website_id',$website->id)->latest('checked_at')->take(2)->pluck('available');$consecutive=$recent->count()===2&&$recent->every(fn($state)=>!(bool)$state);if($incident){$incident->increment('failed_checks');$incident->update(['last_error'=>$message]);}elseif($consecutive){$incident=Incident::create(['website_id'=>$website->id,'started_at'=>$checked,'status'=>'open','last_error'=>$message,'failed_checks'=>2]);$this->notifyWebsiteUsers($website,'Website availability incident',$website->name.' has failed two consecutive checks.');}}
+        elseif($incident){$incident->update(['recovered_at'=>$checked,'status'=>'recovered']);$this->notifyWebsiteUsers($website,'Website recovered',$website->name.' passed a health check and the incident is recovered.');}
+        $sslMonitor->check($website,$safe);
+    }
+
+    private function notifyWebsiteUsers(Website $website,string $title,string $message):void
+    {
+        $users=\App\Models\User::where('organisation_id',$website->organisation_id)->where('role','client')->get();
+        if($website->technician)$users->push($website->technician);
+        foreach($users->unique('id') as $user)$user->notify(new SiteCareAlert($title,$message,'/'));
     }
 }
