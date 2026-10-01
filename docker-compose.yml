@@ -2,32 +2,45 @@ services:
   api:
     build: ./backend
     working_dir: /app
-    command: sh -c "php artisan key:generate --force && php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=8000"
+    command: >-
+      sh -c 'cp .env.example .env; if [ ! -s /run/sitecare/app.key ]; then php -r '\''echo "base64:".base64_encode(random_bytes(32));'\'' > /run/sitecare/app.key; fi; printf "\nAPP_KEY=%s\n" "$$(cat /run/sitecare/app.key)" >> .env; php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=8000'
     ports: ["8000:8000"]
     env_file: ./backend/.env
+    volumes: [sitecare-key:/run/sitecare]
     environment:
       DB_HOST: db
+      MAIL_MAILER: smtp
       MAIL_HOST: mailpit
+      MAIL_PORT: 1025
       APP_URL: http://localhost:8000
       SANCTUM_STATEFUL_DOMAINS: localhost:5173,localhost:8080,localhost,127.0.0.1
     depends_on:
       db: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "php", "artisan", "about", "--only=environment"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
   queue:
     build: ./backend
     working_dir: /app
-    command: php artisan queue:work --sleep=2 --tries=3 --timeout=30
+    command: >-
+      sh -c 'cp .env.example .env; printf "\nAPP_KEY=%s\n" "$$(cat /run/sitecare/app.key)" >> .env; exec php artisan queue:work --sleep=2 --tries=3 --timeout=30'
     env_file: ./backend/.env
-    environment: {DB_HOST: db, MAIL_HOST: mailpit}
+    volumes: [sitecare-key:/run/sitecare]
+    environment: {DB_HOST: db, MAIL_MAILER: smtp, MAIL_HOST: mailpit, MAIL_PORT: 1025}
     depends_on:
-      db: {condition: service_healthy}
+      api: {condition: service_healthy}
   scheduler:
     build: ./backend
     working_dir: /app
-    command: sh -c "while true; do php artisan schedule:run --no-interaction; sleep 60; done"
+    command: >-
+      sh -c 'cp .env.example .env; printf "\nAPP_KEY=%s\n" "$$(cat /run/sitecare/app.key)" >> .env; while true; do php artisan schedule:run --no-interaction; sleep 60; done'
     env_file: ./backend/.env
-    environment: {DB_HOST: db, MAIL_HOST: mailpit}
+    volumes: [sitecare-key:/run/sitecare]
+    environment: {DB_HOST: db, MAIL_MAILER: smtp, MAIL_HOST: mailpit, MAIL_PORT: 1025}
     depends_on:
-      db: {condition: service_healthy}
+      api: {condition: service_healthy}
   frontend:
     build: ./frontend
     ports: ["8080:80"]
@@ -50,3 +63,4 @@ services:
     ports: ["8025:8025"]
 volumes:
   sitecare-db:
+  sitecare-key:

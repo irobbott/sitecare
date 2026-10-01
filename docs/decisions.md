@@ -10,7 +10,7 @@ Websites and tickets carry `organisation_id`. Client API queries filter by the a
 
 ## Monitoring
 
-The scheduler checks active records and sends unique jobs to Laravel's database queue. Jobs use short timeouts and do not follow redirects. URL validation is defense in depth, not a replacement for network egress filtering; production should pin resolved addresses or use an outbound proxy.
+The scheduler checks active records and sends unique jobs to Laravel's database queue. Jobs use short timeouts, validate public A/AAAA addresses, pin the selected address through cURL and do not follow redirects. A production deployment should still apply outbound network filtering.
 
 ## Service targets
 
@@ -18,4 +18,4 @@ Ticket targets use elapsed hours by priority. This first version does not implem
 
 ## Deferred work
 
-Invitation and reset flows, attachment storage, signed backup webhooks, SSL certificate history, email notifications, a full policy suite and end-to-end tests are not implemented. A few tables reserve room for upcoming work without claiming those workflows exist.
+Invitation creation, queued email and acceptance are implemented through the API and a small browser form. Signed backup events encrypt per-site secrets and reject stale or repeated event IDs. An administrator invitation screen, password reset, attachment storage, SSL certificate history, general ticket/incident email notifications, a full policy suite and broad workflow tests remain future work.

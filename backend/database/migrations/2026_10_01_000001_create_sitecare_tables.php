@@ -20,7 +20,9 @@ return new class extends Migration {
             $table->foreignId('technician_id')->nullable()->constrained('users')->nullOnDelete();
             $table->string('name'); $table->string('url', 2048); $table->string('staging_url', 2048)->nullable();
             $table->text('description')->nullable(); $table->text('technology_notes')->nullable(); $table->string('hosting_provider')->nullable();
+            $table->text('internal_verification_notes')->nullable(); $table->text('rejection_reason')->nullable();
             $table->string('status')->default('pending'); $table->unsignedSmallInteger('monitor_interval')->default(15);
+            $table->unsignedSmallInteger('backup_frequency_hours')->nullable(); $table->text('webhook_secret')->nullable();
             $table->timestamp('last_checked_at')->nullable(); $table->boolean('is_up')->nullable(); $table->unsignedSmallInteger('response_ms')->nullable();
             $table->timestamps(); $table->index(['status','last_checked_at']);
         });
@@ -37,6 +39,11 @@ return new class extends Migration {
             $table->id(); $table->foreignId('ticket_id')->constrained()->cascadeOnDelete(); $table->foreignId('user_id')->constrained();
             $table->text('body'); $table->boolean('internal')->default(false); $table->timestamps();
         });
+        Schema::create('ticket_events', function (Blueprint $table) {
+            $table->id(); $table->foreignId('ticket_id')->constrained()->cascadeOnDelete(); $table->foreignId('actor_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->string('event_type'); $table->json('before_data')->nullable(); $table->json('after_data')->nullable(); $table->timestamps();
+            $table->index(['ticket_id','created_at']);
+        });
         Schema::create('uptime_checks', function (Blueprint $table) {
             $table->id(); $table->foreignId('website_id')->constrained()->cascadeOnDelete(); $table->string('checked_url',2048);
             $table->timestamp('checked_at'); $table->unsignedSmallInteger('status_code')->nullable(); $table->boolean('available');
@@ -52,11 +59,16 @@ return new class extends Migration {
             $table->id(); $table->foreignId('website_id')->constrained()->cascadeOnDelete(); $table->string('type')->default('uptime');
             $table->timestamp('started_at'); $table->timestamp('recovered_at')->nullable(); $table->string('status')->default('open');
             $table->string('last_error')->nullable(); $table->unsignedInteger('failed_checks')->default(1); $table->timestamps();
+            $table->foreignId('acknowledged_by')->nullable()->constrained('users')->nullOnDelete(); $table->text('resolution_note')->nullable();
         });
         Schema::create('backup_records', function (Blueprint $table) {
             $table->id(); $table->foreignId('website_id')->constrained()->cascadeOnDelete(); $table->foreignId('recorded_by')->nullable()->constrained('users')->nullOnDelete();
             $table->string('type')->default('full-site'); $table->string('status')->default('completed'); $table->timestamp('completed_at');
             $table->string('destination')->nullable(); $table->unsignedBigInteger('size_bytes')->nullable(); $table->boolean('verified')->default(false); $table->text('notes')->nullable(); $table->timestamps();
+        });
+        Schema::create('backup_webhook_events', function (Blueprint $table) {
+            $table->id(); $table->foreignId('website_id')->constrained()->cascadeOnDelete(); $table->string('event_id',120); $table->timestamp('received_at');
+            $table->unique(['website_id','event_id']);
         });
         Schema::create('audit_logs', function (Blueprint $table) {
             $table->id(); $table->foreignId('actor_id')->nullable()->constrained('users')->nullOnDelete(); $table->foreignId('organisation_id')->nullable()->constrained()->nullOnDelete();
@@ -70,7 +82,7 @@ return new class extends Migration {
 
     public function down(): void
     {
-        foreach (['invitations','audit_logs','backup_records','incidents','maintenance_records','uptime_checks','ticket_comments','tickets','websites'] as $table) Schema::dropIfExists($table);
+        foreach (['invitations','audit_logs','backup_webhook_events','backup_records','incidents','maintenance_records','uptime_checks','ticket_events','ticket_comments','tickets','websites'] as $table) Schema::dropIfExists($table);
         Schema::table('users', fn (Blueprint $table) => $table->dropConstrainedForeignId('organisation_id'));
         Schema::table('users', fn (Blueprint $table) => $table->dropColumn(['role','is_demo']));
         Schema::dropIfExists('organisations');

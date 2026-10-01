@@ -35,6 +35,26 @@ paths:
     post:
       security: [{cookieAuth: []}]
       responses: {'204': {description: Signed out}}
+  /v1/invitations:
+    get:
+      security: [{cookieAuth: []}]
+      responses: {'200': {description: Pending invitations; administrators only}}
+    post:
+      security: [{cookieAuth: []}]
+      responses: {'201': {description: Invitation created and email queued; administrators only}}
+  /v1/invitations/accept:
+    post:
+      summary: Accept a valid single-use invitation
+      responses: {'201': {description: Account created}}
+  /v1/invitations/{invitation}:
+    delete:
+      security: [{cookieAuth: []}]
+      parameters:
+        - in: path
+          name: invitation
+          required: true
+          schema: {type: integer}
+      responses: {'204': {description: Invitation revoked}}
   /v1/dashboard:
     get:
       security: [{cookieAuth: []}]
@@ -55,6 +75,49 @@ paths:
           required: true
           schema: {type: integer}
       responses: {'200': {description: Website reviewed by an administrator}}
+  /v1/websites/{website}/backups:
+    get:
+      security: [{cookieAuth: []}]
+      parameters:
+        - in: path
+          name: website
+          required: true
+          schema: {type: integer}
+      responses: {'200': {description: Scoped backup history}}
+    post:
+      security: [{cookieAuth: []}]
+      parameters:
+        - in: path
+          name: website
+          required: true
+          schema: {type: integer}
+      responses: {'201': {description: Backup record created by staff}}
+  /v1/websites/{website}/backup-webhook-secret:
+    post:
+      security: [{cookieAuth: []}]
+      parameters:
+        - in: path
+          name: website
+          required: true
+          schema: {type: integer}
+      responses: {'200': {description: Rotated secret, shown once}}
+  /v1/websites/{website}/maintenance:
+    get:
+      security: [{cookieAuth: []}]
+      parameters:
+        - in: path
+          name: website
+          required: true
+          schema: {type: integer}
+      responses: {'200': {description: Visible maintenance history}}
+    post:
+      security: [{cookieAuth: []}]
+      parameters:
+        - in: path
+          name: website
+          required: true
+          schema: {type: integer}
+      responses: {'201': {description: Maintenance record created by staff}}
   /v1/tickets:
     get:
       security: [{cookieAuth: []}]
@@ -88,6 +151,52 @@ paths:
           required: true
           schema: {type: integer}
       responses: {'201': {description: Comment added}}
+  /v1/tickets/{ticket}/history:
+    get:
+      security: [{cookieAuth: []}]
+      parameters:
+        - in: path
+          name: ticket
+          required: true
+          schema: {type: integer}
+      responses: {'200': {description: Status, priority and assignment history}}
+  /v1/incidents:
+    get:
+      security: [{cookieAuth: []}]
+      responses: {'200': {description: Tenant- or assignment-scoped incidents}}
+  /v1/incidents/{incident}:
+    patch:
+      security: [{cookieAuth: []}]
+      parameters:
+        - in: path
+          name: incident
+          required: true
+          schema: {type: integer}
+      responses: {'200': {description: Incident acknowledged by staff}}
+  /v1/webhooks/websites/{website}/backups:
+    post:
+      summary: Submit a backup event signed with the website secret
+      parameters:
+        - in: path
+          name: website
+          required: true
+          schema: {type: integer}
+        - in: header
+          name: X-SiteCare-Timestamp
+          required: true
+          schema: {type: string}
+        - in: header
+          name: X-SiteCare-Event-Id
+          required: true
+          schema: {type: string}
+        - in: header
+          name: X-SiteCare-Signature
+          required: true
+          schema: {type: string}
+      responses:
+        '201': {description: Backup event accepted}
+        '401': {description: Invalid signature or timestamp}
+        '409': {description: Replayed event id}
 components:
   securitySchemes:
     cookieAuth:

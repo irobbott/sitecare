@@ -22,4 +22,4 @@ Run `php artisan queue:work` and `php artisan schedule:work` in separate termina
 
 ## Current API coverage
 
-Authentication, dashboard summaries, website submission/review, tickets, comments and basic monitor jobs are implemented. See the root OpenAPI file for the route subset. Invitations, password recovery, file attachments, SSL checks, backup webhooks and email notifications are not implemented yet.
+Authentication, invitation management/acceptance, dashboard summaries, website submission/review, tickets, comments, maintenance and backup records, signed backup webhooks, incidents and basic monitor jobs are implemented. See the root OpenAPI file for the route subset. Password recovery, file attachments, SSL checks and general email notifications are not implemented yet.
