@@ -21,10 +21,15 @@ class TicketNotificationTest extends TestCase
         $website=Website::create(['organisation_id'=>$organisation->id,'technician_id'=>$technician->id,'name'=>'Northstar site','url'=>'https://example.test','status'=>'active']);
         $ticket=Ticket::create(['number'=>'SC-2026-00009','organisation_id'=>$organisation->id,'website_id'=>$website->id,'reporter_id'=>$client->id,'assignee_id'=>$technician->id,'subject'=>'Form issue','description'=>'Details','priority'=>'normal','status'=>'in_progress']);
 
-        $this->actingAs($client)->postJson("/api/v1/tickets/{$ticket->id}/comments",['body'=>'The issue still happens.','internal'=>true])->assertCreated();
+        $this->actingAs($client)->postJson("/api/v1/tickets/{$ticket->id}/comments",['body'=>'The issue still happens.','internal'=>true])->assertForbidden();
         Notification::assertNothingSent();
+        $this->assertNull($ticket->fresh()->first_response_at);
 
         $this->actingAs($client)->postJson("/api/v1/tickets/{$ticket->id}/comments",['body'=>'I can reproduce it now.'])->assertCreated();
         Notification::assertSentTo($technician,SiteCareAlert::class);
+
+        $this->actingAs($technician)->postJson("/api/v1/tickets/{$ticket->id}/comments",['body'=>'I have started investigating.'])->assertCreated();
+        $this->assertNotNull($ticket->fresh()->first_response_at);
+        $this->assertDatabaseHas('ticket_events',['ticket_id'=>$ticket->id,'event_type'=>'first_response']);
     }
 }

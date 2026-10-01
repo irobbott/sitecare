@@ -291,6 +291,52 @@
                                               },
                                      "url":  "{{baseUrl}}/api/v1/webhooks/websites/{{websiteId}}/backups"
                                  }
+                 },
+                 {
+                     "name":  "Ticket categories",
+                     "request":  {
+                                     "method":  "GET",
+                                     "header":  [{"key":"Accept","value":"application/json"}],
+                                     "url":  "{{baseUrl}}/api/v1/ticket-categories"
+                                 }
+                 },
+                 {
+                     "name":  "Platform settings",
+                     "request":  {
+                                     "method":  "GET",
+                                     "header":  [{"key":"Accept","value":"application/json"}],
+                                     "url":  "{{baseUrl}}/api/v1/platform-settings"
+                                 }
+                 },
+                 {
+                     "name":  "Update response targets (admin)",
+                     "request":  {
+                                     "method":  "PATCH",
+                                     "header":  [
+                                                    {"key":"Accept","value":"application/json"},
+                                                    {"key":"Content-Type","value":"application/json"}
+                                                ],
+                                     "body":  {
+                                                  "mode":  "raw",
+                                                  "raw":  "{\"ticket_response_targets\":{\"low\":72,\"normal\":24,\"high\":4,\"urgent\":1}}"
+                                              },
+                                     "url":  "{{baseUrl}}/api/v1/platform-settings"
+                                 }
+                 },
+                 {
+                     "name":  "Request password reset",
+                     "request":  {
+                                     "method":  "POST",
+                                     "header":  [
+                                                    {"key":"Accept","value":"application/json"},
+                                                    {"key":"Content-Type","value":"application/json"}
+                                                ],
+                                     "body":  {
+                                                  "mode":  "raw",
+                                                  "raw":  "{\"email\":\"client@sitecare.test\"}"
+                                              },
+                                     "url":  "{{baseUrl}}/api/v1/auth/forgot-password"
+                                 }
                  }
              ]
 }

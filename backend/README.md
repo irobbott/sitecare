@@ -22,4 +22,6 @@ Run `php artisan queue:work` and `php artisan schedule:work` in separate termina
 
 ## Current API coverage
 
-Authentication, invitation management/acceptance, dashboard summaries, website submission/review, tickets, comments, maintenance and backup records, signed backup webhooks, incidents and basic monitor jobs are implemented. See the root OpenAPI file for the route subset. Password recovery, file attachments, SSL checks and general email notifications are not implemented yet.
+Authentication, invitation management/acceptance, password recovery, profile and notification preferences, organisation and team management, website submission/review, ticket workflows and categories, comments, private attachments, maintenance and backup records, signed backup webhooks, incidents, audit events, SSL checks and queued notifications are implemented. Admins can configure elapsed-hour ticket response targets. See the root OpenAPI file and Postman collection for API examples.
+
+The monitor validates public HTTP/HTTPS targets and pins resolved public addresses. Add network-level egress restrictions before exposing it to untrusted traffic. Response targets use elapsed hours, not business hours, and do not pause while waiting on the client. The first client-visible staff response is timestamped. Backup records are external reports; SiteCare does not run or restore backups.

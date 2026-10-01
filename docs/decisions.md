@@ -16,6 +16,8 @@ The scheduler checks active records and sends unique jobs to Laravel's database 
 
 Ticket targets use elapsed hours by priority. This first version does not implement business calendars, pause rules, or contractual SLA claims.
 
-## Deferred work
+## Implemented workflows and remaining work
 
-Invitation creation, queued email and acceptance are implemented through the API and a small browser form. Signed backup events encrypt per-site secrets and reject stale or repeated event IDs. An administrator invitation screen, password reset, attachment storage, SSL certificate history, general ticket/incident email notifications, a full policy suite and broad workflow tests remain future work.
+Invitation creation, queued email and acceptance are implemented through the API and administrator screen. Password reset, private attachment storage, SSL certificate history, incident alerts, configurable response targets and notification preferences are also implemented. Signed backup events encrypt per-site secrets and reject stale or repeated event IDs.
+
+The current target calculation uses elapsed hours and does not pause while waiting for a client. Broader audit coverage, business-hour calendars, richer analytics, health-history retention, production egress filtering and more role-isolation workflow tests remain future work.

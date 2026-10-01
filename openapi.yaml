@@ -287,7 +287,7 @@ paths:
           name: ticket
           required: true
           schema: {type: integer}
-      responses: {'200': {description: Status, priority and assignment history}}
+      responses: {'200': {description: Ticket creation, first reply, status, priority and assignment history}}
   /v1/tickets/{ticket}/attachments:
     get:
       security: [{cookieAuth: []}]

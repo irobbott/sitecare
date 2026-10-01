@@ -373,7 +373,7 @@ class SiteCareController extends Controller
     public function updateTicket(Request $request,Ticket $ticket)
     {
         $this->authorizeTicket($request,$ticket); $data=$request->validate(['status'=>'sometimes|in:open,triaged,assigned,in_progress,waiting_for_client,resolved,closed','priority'=>'sometimes|in:low,normal,high,urgent','assignee_id'=>'sometimes|nullable|exists:users,id']);
-        if (isset($data['status'])) {$transitions=['open'=>['triaged','assigned'],'triaged'=>['assigned','in_progress'],'assigned'=>['in_progress','waiting_for_client'],'in_progress'=>['waiting_for_client','resolved'],'waiting_for_client'=>['in_progress','resolved'],'resolved'=>['open','closed'],'closed'=>[]];$role=$request->user()->role;$allowed=$role==='admin'||($role==='client'&&$ticket->status==='resolved'&&$data['status']==='open')||($role==='technician'&&in_array($data['status'],$transitions[$ticket->status]??[],true));abort_unless($allowed,422,'Invalid status transition.');if($data['status']==='resolved')$data['resolved_at']=now();if($data['status']==='closed')$data['closed_at']=now();}
+        if (isset($data['status'])) {$transitions=['open'=>['triaged','assigned'],'triaged'=>['assigned','in_progress'],'assigned'=>['in_progress','waiting_for_client'],'in_progress'=>['waiting_for_client','resolved'],'waiting_for_client'=>['in_progress','resolved'],'resolved'=>['open','closed'],'closed'=>[]];$role=$request->user()->role;$allowed=$role==='admin'||($role==='client'&&$ticket->status==='resolved'&&$data['status']==='open')||($role==='technician'&&in_array($data['status'],$transitions[$ticket->status]??[],true));abort_unless($allowed,422,'Invalid status transition.');if($data['status']==='resolved'){$data['resolved_at']=now();$data['closed_at']=null;}if($data['status']==='closed')$data['closed_at']=now();if($data['status']==='open'&&in_array($ticket->status,['resolved','closed'],true)){$data['resolved_at']=null;$data['closed_at']=null;}}
         if (isset($data['priority']) && $data['priority'] !== $ticket->priority) {
             $targets = PlatformSetting::firstOrCreate(['key' => 'ticket_response_targets'], ['value' => ['low' => 72, 'normal' => 24, 'high' => 4, 'urgent' => 1]])->value;
             $data['response_due_at'] = now()->addHours($targets[$data['priority']] ?? 24);
@@ -427,7 +427,34 @@ class SiteCareController extends Controller
             'download_url'=>'/api/v1/attachments/'.$attachment->id,
         ];
     }
-    public function storeComment(Request $request,Ticket $ticket) {$this->authorizeTicket($request,$ticket);$data=$request->validate(['body'=>'required|string|max:10000','internal'=>'sometimes|boolean']);abort_if(($data['internal']??false)&&!$request->user()->isStaff(),403);$comment=$ticket->comments()->create(['body'=>$data['body'],'internal'=>$data['internal']??false,'user_id'=>$request->user()->id]);if(!($data['internal']??false)){if($request->user()->role==='client'){if($ticket->assignee)$this->notify($ticket->assignee,'New client reply',$ticket->number.' received a reply.','/');}else \App\Models\User::where('organisation_id',$ticket->organisation_id)->where('role','client')->get()->each(fn($member)=>$this->notify($member,'New support reply',$ticket->number.' has a new update.','/'));}$this->audit($request,'ticket.comment_added',$comment);return response()->json(['data'=>$comment->load('user:id,name,role')],201);}
+    public function storeComment(Request $request, Ticket $ticket)
+    {
+        $this->authorizeTicket($request, $ticket);
+        $data = $request->validate(['body' => 'required|string|max:10000', 'internal' => 'sometimes|boolean']);
+        abort_if(($data['internal'] ?? false) && !$request->user()->isStaff(), 403);
+        $internal = $data['internal'] ?? false;
+        $comment = $ticket->comments()->create(['body' => $data['body'], 'internal' => $internal, 'user_id' => $request->user()->id]);
+
+        if (!$internal && $request->user()->isStaff() && !$ticket->first_response_at) {
+            $ticket->update(['first_response_at' => now()]);
+            $ticket->events()->create([
+                'actor_id' => $request->user()->id,
+                'event_type' => 'first_response',
+                'after_data' => ['first_response_at' => $ticket->fresh()->first_response_at?->toISOString()],
+            ]);
+        }
+
+        if (!$internal) {
+            if ($request->user()->role === 'client') {
+                if ($ticket->assignee) $this->notify($ticket->assignee, 'New client reply', $ticket->number.' received a reply.', '/');
+            } else {
+                \App\Models\User::where('organisation_id', $ticket->organisation_id)->where('role', 'client')->get()
+                    ->each(fn ($member) => $this->notify($member, 'New support reply', $ticket->number.' has a new update.', '/'));
+            }
+        }
+        $this->audit($request, 'ticket.comment_added', $comment);
+        return response()->json(['data' => $comment->load('user:id,name,role')], 201);
+    }
     private function authorizeTicket(Request $request,Ticket $ticket):void {$user=$request->user();abort_unless($user->role==='admin'||($user->role==='technician'?$ticket->assignee_id===$user->id:$ticket->organisation_id===$user->organisation_id),404);abort_if($user->role==='client'&&$ticket->organisation?->status!=='active',403);}
     private function audit(Request $request,string $action,$subject,array $metadata=[]):void {$organisationId=$subject instanceof \App\Models\Organisation?$subject->id:($subject->getAttribute('organisation_id')??$request->user()->organisation_id);if(!$organisationId&&$subject instanceof TicketComment)$organisationId=$subject->ticket?->organisation_id;if(!$organisationId&&$subject instanceof TicketAttachment)$organisationId=$subject->ticket?->organisation_id;if(!$organisationId&&$subject instanceof MaintenanceRecord)$organisationId=$subject->website?->organisation_id;if(!$organisationId&&$subject instanceof BackupRecord)$organisationId=$subject->website?->organisation_id;if(!$organisationId&&$subject instanceof Incident)$organisationId=$subject->website?->organisation_id;AuditLog::create(['actor_id'=>$request->user()->id,'organisation_id'=>$organisationId,'action'=>$action,'subject_type'=>class_basename($subject),'subject_id'=>$subject->id,'metadata'=>$metadata?:null,'ip_address'=>$request->ip()]);}
     private function notify(\App\Models\User $user,string $title,string $message,string $url):void

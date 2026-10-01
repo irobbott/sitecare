@@ -31,7 +31,7 @@ Users have `admin`, `technician`, or `client` roles. Client requests are restric
 
 ## Ticket workflow and response targets
 
-Tickets begin open. Normal transitions are checked in the update endpoint across `open`, `triaged`, `assigned`, `in_progress`, `waiting_for_client`, `resolved`, and `closed`. An administrator can correct a status. Target dates use simple elapsed hours by priority (low 72, normal 24, high 4, urgent 1); weekends and holidays are not excluded, and waiting-on-client time is not paused. These dates are internal targets, not service guarantees.
+Tickets begin open. Normal transitions are checked in the update endpoint across `open`, `triaged`, `assigned`, `in_progress`, `waiting_for_client`, `resolved`, and `closed`. An administrator can correct a status. By default, response targets use elapsed hours by priority (low 72, normal 24, high 4, urgent 1); administrators can configure them from 1 to 720 hours. The first client-visible staff reply is recorded. Weekends and holidays are not excluded, and the target does not pause while waiting on a client. These dates are internal targets, not service guarantees.
 
 ## Monitoring behaviour and limits
 
@@ -127,8 +127,8 @@ GitHub Actions runs backend tests on PHP 8.3 and frontend lint, type, unit and b
 
 ## Security and production notes
 
-The app has no public registration endpoint. It uses Sanctum session cookies and CSRF protection. API queries scope client data to an organisation and filter internal notes. Website submissions reject credentials, unsupported protocols/ports and detected private/reserved IPs. Monitor requests have bounded timeouts and do not follow redirects.
+The app has no public registration endpoint. It uses Sanctum session cookies and CSRF protection. API queries scope client data to an organisation and filter internal notes. Website submissions reject credentials, unsupported protocols/ports and detected private/reserved IPs. Monitor requests have bounded timeouts and do not follow redirects. Attachment downloads check ticket access; reset responses do not reveal whether an email belongs to an account.
 
-Attachments, SSL monitoring, general email notifications, full password recovery and production-grade SSRF egress filtering remain future work. Before production, add those flows, policy and isolation tests, secrets management, TLS and ingress controls, application backups and deployment monitoring. Do not claim guaranteed uptime or that SiteCare runs a customer's backups.
+Before production, add network-level egress filtering for monitor traffic, review the authorization policies and isolation tests, configure secret storage, TLS and ingress controls, and define health-history retention and deployment monitoring. The application does not guarantee uptime or run a customer's backups.
 
-See [docs/decisions.md](docs/decisions.md) for implementation choices. Monitoring uses Laravel's database queue so local setup does not require Redis. Response targets are elapsed-hour estimates. Retention and aggregation for health history still need a production policy.
+See [docs/decisions.md](docs/decisions.md) for implementation choices. Monitoring uses Laravel's database queue so local setup does not require Redis. Response targets are configurable elapsed-hour estimates; they do not use business calendars or pause while a ticket waits on a client. Analytics and audit coverage can be expanded further.
