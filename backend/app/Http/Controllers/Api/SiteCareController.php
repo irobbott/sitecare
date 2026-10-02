@@ -9,6 +9,7 @@ use App\Mail\InvitationMail;
 use App\Notifications\SiteCareAlert;
 use App\Services\SafeWebsiteUrl;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password as PasswordBroker;
@@ -25,7 +26,7 @@ class SiteCareController extends Controller
         $data=$request->validate(['email'=>'required|email','password'=>'required|string']); $user=\App\Models\User::where('email',$data['email'])->first();
         if (!$user || !Hash::check($data['password'],$user->password)) return response()->json(['message'=>'The supplied credentials are incorrect.'],422);
         if ($user->organisation && $user->organisation->status!=='active') return response()->json(['message'=>'This organisation is suspended.'],403);
-        $request->session()->regenerate();AuditLog::create(['actor_id'=>$user->id,'organisation_id'=>$user->organisation_id,'action'=>'auth.login','subject_type'=>'User','subject_id'=>$user->id,'ip_address'=>$request->ip()]);return ['data'=>['user'=>$user->only('id','name','email','role','organisation_id')]];
+        Auth::login($user);$request->session()->regenerate();AuditLog::create(['actor_id'=>$user->id,'organisation_id'=>$user->organisation_id,'action'=>'auth.login','subject_type'=>'User','subject_id'=>$user->id,'ip_address'=>$request->ip()]);return ['data'=>['user'=>$user->only('id','name','email','role','organisation_id')]];
     }
     public function forgotPassword(Request $request)
     {
